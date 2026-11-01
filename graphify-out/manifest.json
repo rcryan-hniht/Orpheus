@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "tests/test_app.py": {
-    "mtime": 1793545763.5035126,
-    "seen": 1793546037.4110637,
-    "ast_hash": "785ef89b74cf695058a89f3e88f03555",
+    "mtime": 1793550247.2345355,
+    "seen": 1793550266.3136635,
+    "ast_hash": "8a737321b0bdb64a62467aa976c43a75",
     "semantic_hash": ""
   },
   "tests/test_cli.py": {
@@ -53,18 +53,6 @@
     "ast_hash": "1af623ff42154fea6d5f16ec6396ab97",
     "semantic_hash": ""
   },
-  "docs/superpowers/plans/2026-11-01-termmusic.md": {
-    "mtime": 1793539308.1951895,
-    "seen": 1793539791.4494553,
-    "ast_hash": "001ef6a0f3b56b4b1dc2447bab20c1e0",
-    "semantic_hash": ""
-  },
-  "docs/superpowers/specs/2026-11-01-termmusic-design.md": {
-    "mtime": 1793539307.967185,
-    "seen": 1793539791.4494567,
-    "ast_hash": "678076e61e2db2d9005eabe96ba3f809",
-    "semantic_hash": ""
-  },
   "README.md": {
     "mtime": 1793545965.6845217,
     "seen": 1793546037.4110785,
@@ -72,15 +60,15 @@
     "semantic_hash": ""
   },
   "docs/verification.md": {
-    "mtime": 1793542280.15009,
-    "seen": 1793542345.1545262,
-    "ast_hash": "8a8acf3285f13776f74c3b7489f6d0a0",
+    "mtime": 1793548779.9602509,
+    "seen": 1793549295.444306,
+    "ast_hash": "398c53d05b27be16816c8a8fb4600ced",
     "semantic_hash": ""
   },
   "tests/test_themes.py": {
-    "mtime": 1793542528.4340012,
-    "seen": 1793542601.7003036,
-    "ast_hash": "4b3a5834cae2c0368eb7f7e52852eb59",
+    "mtime": 1793550247.2315354,
+    "seen": 1793550266.313691,
+    "ast_hash": "fcddc9eca5aa2d0d8baf00bddbbf081d",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-11-01-orpheus-themes.md": {
@@ -102,9 +90,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/app.py": {
-    "mtime": 1793545917.6365688,
-    "seen": 1793546037.4110491,
-    "ast_hash": "e00622ad42151d98c4b5fd8b5d6772c1",
+    "mtime": 1793550247.2345355,
+    "seen": 1793550266.31363,
+    "ast_hash": "04a0150f75e3beda512fb537c409fd7f",
     "semantic_hash": ""
   },
   "src/orpheus/lyrics.py": {
@@ -114,9 +102,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/models.py": {
-    "mtime": 1793545384.493997,
-    "seen": 1793546037.411053,
-    "ast_hash": "2fbcee3f93ab658da478688968e1aae3",
+    "mtime": 1793549439.7100947,
+    "seen": 1793550266.3136387,
+    "ast_hash": "708ab40456e2896b8ae4d68c71dc0756",
     "semantic_hash": ""
   },
   "src/orpheus/player.py": {
@@ -167,22 +155,136 @@
     "ast_hash": "a0be727032032ae2953adf15538774b2",
     "semantic_hash": ""
   },
-  ".superpowers/sdd/2026-11-01-web-audio-playback/progress.md": {
-    "mtime": 1793545951.0532315,
-    "seen": 1793546037.4110765,
-    "ast_hash": "f8782e8030c2b572e3cc85f116aeea5d",
-    "semantic_hash": ""
-  },
   "docs/superpowers/plans/2026-11-01-web-audio-playback.md": {
     "mtime": 1793545255.9114745,
     "seen": 1793546037.4110827,
     "ast_hash": "1918afb014bc5adf53b9d7ac31550429",
     "semantic_hash": ""
   },
-  "prompt.md": {
-    "mtime": 1793545934.83691,
-    "seen": 1793546037.4110868,
-    "ast_hash": "a23c50ad9536a283c91fe70f71ea4400",
+  "docs/superpowers/specs/2026-11-01-orpheus-ui-redesign-design.md": {
+    "mtime": 1793548752.1525683,
+    "seen": 1793549295.4443033,
+    "ast_hash": "a23e3ffbb176a9891c5be9ab5f2768a7",
+    "semantic_hash": ""
+  },
+  "src/orpheus/albums.py": {
+    "mtime": 1793549740.775477,
+    "seen": 1793550266.3136272,
+    "ast_hash": "f3877305a77b9582b8f51f8714897e2e",
+    "semantic_hash": ""
+  },
+  "src/orpheus/art.py": {
+    "mtime": 1793549399.9643917,
+    "seen": 1793550266.3136318,
+    "ast_hash": "bf14b4ede27519983cbb2875da33d8d7",
+    "semantic_hash": ""
+  },
+  "src/orpheus/glitch.py": {
+    "mtime": 1793549604.6470423,
+    "seen": 1793550266.3136332,
+    "ast_hash": "87bff594a65b8d4a6b587e4001e2f395",
+    "semantic_hash": ""
+  },
+  "src/orpheus/matrix.py": {
+    "mtime": 1793549553.4441264,
+    "seen": 1793550266.3136368,
+    "ast_hash": "b993135b0d269ff583adce5f1a512c98",
+    "semantic_hash": ""
+  },
+  "src/orpheus/phases/__init__.py": {
+    "mtime": 1793549889.3371341,
+    "seen": 1793550266.3136399,
+    "ast_hash": "ca818e1f4380749511df7a2936e416c0",
+    "semantic_hash": ""
+  },
+  "src/orpheus/phases/home.py": {
+    "mtime": 1793550150.6238074,
+    "seen": 1793550266.3136413,
+    "ast_hash": "6dbec2b445a76e6de2cd0102776b79c8",
+    "semantic_hash": ""
+  },
+  "src/orpheus/phases/now_playing.py": {
+    "mtime": 1793549953.7742867,
+    "seen": 1793550266.3136425,
+    "ast_hash": "6af8a20b77b53b240b7e2fde90ee7ad1",
+    "semantic_hash": ""
+  },
+  "src/orpheus/phases/search.py": {
+    "mtime": 1793549828.7920513,
+    "seen": 1793550266.3136437,
+    "ast_hash": "d0b39e818589d27486c74bf654206f37",
+    "semantic_hash": ""
+  },
+  "src/orpheus/resolver.py": {
+    "mtime": 1793549496.4371068,
+    "seen": 1793550266.3136466,
+    "ast_hash": "8fc2bf2623b2d9d23388e77dd4f245ef",
+    "semantic_hash": ""
+  },
+  "src/orpheus/settings.py": {
+    "mtime": 1793549672.1402495,
+    "seen": 1793550266.3136494,
+    "ast_hash": "f7ba085fe3e210d1ff3353ecfeb3d2f4",
+    "semantic_hash": ""
+  },
+  "src/orpheus/title.py": {
+    "mtime": 1793549569.2294087,
+    "seen": 1793550266.3136554,
+    "ast_hash": "084178d1a1438faddcebede4f2f060e9",
+    "semantic_hash": ""
+  },
+  "tests/test_albums.py": {
+    "mtime": 1793549695.3356643,
+    "seen": 1793550266.3136618,
+    "ast_hash": "c7907fc0b8b0bb7e002fc766ea7c7b0f",
+    "semantic_hash": ""
+  },
+  "tests/test_art.py": {
+    "mtime": 1793549399.9643917,
+    "seen": 1793550266.3136654,
+    "ast_hash": "09e067f8e7af65cb7af6f6d285a9ef7e",
+    "semantic_hash": ""
+  },
+  "tests/test_glitch.py": {
+    "mtime": 1793549615.0792289,
+    "seen": 1793550266.3136678,
+    "ast_hash": "e3b0613b25fc268cb7b1e6170f3e1bca",
+    "semantic_hash": ""
+  },
+  "tests/test_phase_now_playing.py": {
+    "mtime": 1793549938.9250212,
+    "seen": 1793550266.3136702,
+    "ast_hash": "b8f797327595c34874b2af3849fadcfc",
+    "semantic_hash": ""
+  },
+  "tests/test_phases_home_search.py": {
+    "mtime": 1793549814.6647985,
+    "seen": 1793550266.3136735,
+    "ast_hash": "520a0c1a0660ee1efc374d8d350301c3",
+    "semantic_hash": ""
+  },
+  "tests/test_resolver.py": {
+    "mtime": 1793549519.9655275,
+    "seen": 1793550266.313677,
+    "ast_hash": "f29587a3fe40686ff05033dc86fc8b79",
+    "semantic_hash": ""
+  },
+  "tests/test_settings.py": {
+    "mtime": 1793549629.5354874,
+    "seen": 1793550266.3136852,
+    "ast_hash": "6a365bdbcdb038122c291fad35ffac9e",
+    "semantic_hash": ""
+  },
+  "tests/test_visuals.py": {
+    "mtime": 1793549535.1087985,
+    "seen": 1793550266.3136952,
+    "ast_hash": "990316ebb1d971daa96d5e79c6873a59",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md": {
+    "mtime": 1793549346.2004406,
+    "seen": 1793550266.3137012,
+    "ast_hash": "454179f6932353825bfc2afe5835c202",
     "semantic_hash": ""
   }
 }

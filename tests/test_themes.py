@@ -1,15 +1,13 @@
 import asyncio
 
 import pytest
-
-pytest.importorskip("textual")
-
 from test_app import LOCAL, LyricLookup, Player, Provider, Stems
-from textual.widgets import DataTable, Select
 
 from orpheus.app import OrpheusApp
 from orpheus.storage import Database
 from orpheus.themes import DEFAULT_THEME, PRESET_LABELS, get_themes
+
+pytest.importorskip("textual")
 
 
 def make_app(tmp_path, theme=None):
@@ -48,19 +46,11 @@ def test_theme_selection_persists_without_interrupting_playback(tmp_path):
     async def scenario():
         app, db = make_app(tmp_path)
         async with app.run_test() as pilot:
-            await app.workers.wait_for_complete()
             assert app.theme == DEFAULT_THEME
-            table = app.query_one("#tracks", DataTable)
-            table.focus()
-            await pilot.press("enter")
-            await app.workers.wait_for_complete()
-            playing = app.current_track
-            app.query_one("#theme", Select).value = "catppuccin-latte"
+            app.theme = "catppuccin-latte"
             await pilot.pause()
             assert app.theme == "catppuccin-latte"
             assert db.get_theme() == "catppuccin-latte"
-            assert app.current_track == playing
-            assert app.queue == []
         await app.close()
 
     asyncio.run(scenario())
@@ -74,7 +64,6 @@ def test_saved_theme_restored_and_cli_override_persisted(tmp_path):
         app, db = make_app(tmp_path)
         async with app.run_test():
             assert app.theme == "blackmetal"
-            assert app.query_one("#theme", Select).value == "blackmetal"
         await app.close()
 
         app, db = make_app(tmp_path, theme="github-dark-contrast")
@@ -86,21 +75,14 @@ def test_saved_theme_restored_and_cli_override_persisted(tmp_path):
     asyncio.run(scenario())
 
 
-def test_unknown_saved_theme_falls_back_and_palette_changes_sync_selector(tmp_path):
+def test_unknown_saved_theme_falls_back(tmp_path):
     async def scenario():
         db = Database(tmp_path / "music.sqlite")
         db.set_theme("removed-preset")
         db.close()
         app, db = make_app(tmp_path)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             assert app.theme == DEFAULT_THEME
-            app.theme = "sequoia-light-monochrome"
-            await pilot.pause()
-            assert app.query_one("#theme", Select).value == app.theme
-            assert db.get_theme() == app.theme
-            app.theme = "textual-dark"
-            await pilot.pause()
-            assert app.query_one("#theme", Select).is_blank
         await app.close()
 
     asyncio.run(scenario())

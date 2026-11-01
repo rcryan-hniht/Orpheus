@@ -132,9 +132,11 @@ class HomeScreen(Screen):
         if hasattr(self.app, "switch_phase"):
             self.app.switch_phase("now_playing")
 
-    def action_stop(self) -> None:
+    async def action_stop(self) -> None:
         if hasattr(self.app, "action_stop"):
-            self.app.action_stop()
+            res = self.app.action_stop()
+            if hasattr(res, "__await__"):
+                await res
 
     def action_quit(self) -> None:
         self.app.exit()
