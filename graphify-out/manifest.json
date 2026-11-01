@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793541849.5335994,
-    "seen": 1793542345.1545205,
-    "ast_hash": "f78f699361f26e3d77ec861ac174ccfd",
+    "mtime": 1793543847.057733,
+    "seen": 1793543868.255592,
+    "ast_hash": "89fbc9cb5445aa63cd84c9f51e5b48c6",
     "semantic_hash": ""
   },
   "docs/verification.md": {
@@ -147,6 +147,12 @@
     "mtime": 1793541560.5888565,
     "seen": 1793542345.15451,
     "ast_hash": "a91815ca6c4747701a1333e5d4c3c38c",
+    "semantic_hash": ""
+  },
+  "install.sh": {
+    "mtime": 1793543837.2705388,
+    "seen": 1793543868.255525,
+    "ast_hash": "f6b90122824fd83710d58410bbf42fb9",
     "semantic_hash": ""
   }
 }
