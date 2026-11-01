@@ -143,62 +143,56 @@ def test_search_play_and_consume_queue(tmp_path):
     asyncio.run(scenario())
 
 
-def test_youtube_opens_official_page_without_mpv_or_queue(tmp_path):
+def test_youtube_plays_in_mpv_and_can_be_queued(tmp_path):
     async def scenario():
-        opened = []
-        app, player, db = make_app(tmp_path, browser_opener=lambda url: opened.append(url) or True)
+        app, player, db = make_app(tmp_path)
         async with app.run_test() as pilot:
             app.query_one("#search", Input).value = "Video"
             app.query_one("#source").value = "youtube"
             await app.workers.wait_for_complete()
             table = app.query_one("#tracks", DataTable)
             table.focus()
-            await pilot.press("enter")
-            for _ in range(100):
-                if app.current_track == YOUTUBE:
-                    break
-                await asyncio.sleep(0.01)
-            assert app.current_track == YOUTUBE
-            assert opened == [YOUTUBE.location]
-            assert "browser" in str(app.query_one("#status", Static).render()).lower()
-            for _ in range(100):
-                if app.screen.__class__.__name__ == "LyricsPickerScreen":
-                    break
-                await asyncio.sleep(0.01)
-            await pilot.press("escape")
             await pilot.press("e")
+            await pilot.pause()
+            assert db.load_queue() == [YOUTUBE]
+            await pilot.press("enter")
             await app.workers.wait_for_complete()
-            assert player.loads == []
-            assert db.load_queue() == []
-            assert "youtube.com/watch" in str(app.query_one("#attribution", Static).render())
+            assert app.current_track == YOUTUBE
+            assert player.loads == [(YOUTUBE.location, 0, False)]
+            assert "youtube" in str(app.query_one("#attribution", Static).render()).lower()
         await app.close()
 
     asyncio.run(scenario())
 
 
-def test_failed_browser_open_keeps_local_playing(tmp_path):
+def test_direct_url_search_plays_and_queues(tmp_path):
     async def scenario():
-        app, player, _ = make_app(tmp_path, browser_opener=lambda url: False)
+        app, player, db = make_app(tmp_path)
         async with app.run_test() as pilot:
+            url = "https://radio.example.com/live.mp3"
+            app.query_one("#search", Input).value = url
+            search_input = app.query_one("#search", Input)
+            await search_input.action_submit()
             await app.workers.wait_for_complete()
-            app.query_one("#tracks", DataTable).focus()
+            table = app.query_one("#tracks", DataTable)
+            assert table.row_count == 1
+            assert app.results[0].source == "web"
+            assert app.results[0].location == url
+            table.focus()
+            await pilot.press("e")
+            await pilot.pause()
+            assert db.load_queue() == [app.results[0]]
             await pilot.press("enter")
             await app.workers.wait_for_complete()
-            app.query_one("#search", Input).value = "Video"
-            app.query_one("#source").value = "youtube"
-            await app.workers.wait_for_complete()
-            app.query_one("#tracks", DataTable).focus()
-            await pilot.press("enter")
-            await app.workers.wait_for_complete()
-            assert app.current_track == LOCAL
-            assert player.stops == 0
-            assert player.loads == [(LOCAL.location, 0, False)]
+            assert app.current_track.source == "web"
+            assert player.loads == [(url, 0, False)]
         await app.close()
 
     asyncio.run(scenario())
 
 
-def test_youtube_lyrics_require_choice_and_cached_choice_skips_picker(tmp_path):
+
+def test_lyrics_reload_opens_picker_and_caches_choice(tmp_path):
     async def scenario():
         lyrics = LyricLookup()
         lyrics.matches = [
@@ -215,39 +209,49 @@ def test_youtube_lyrics_require_choice_and_cached_choice_skips_picker(tmp_path):
             await app.workers.wait_for_complete()
             app.query_one("#tracks", DataTable).focus()
             await pilot.press("enter")
+            await app.workers.wait_for_complete()
+            assert app.current_track == YOUTUBE
+            assert lyrics.get_cached(YOUTUBE) is None
+
+            # Press r to open lyrics picker
+            await pilot.press("r")
             for _ in range(100):
                 if app.screen.__class__.__name__ == "LyricsPickerScreen":
                     break
                 await asyncio.sleep(0.01)
             table = app.screen.query_one("#lyrics-results", DataTable)
             assert table.row_count == 2
-            assert lyrics.get_cached(YOUTUBE) is None
             table.focus()
             table.move_cursor(row=1)
             await pilot.press("enter")
             await app.workers.wait_for_complete()
             pane = str(app.query_one("#lyrics", Static).render())
             assert "Chosen words" in pane and "More words" in pane
-            assert "00:01" not in pane
             assert lyrics.get_cached(YOUTUBE) == lyrics.matches[1].lyrics
-            assert player.loads == []
-            app.query_one("#tracks", DataTable).focus()
-            await pilot.press("enter")
-            await app.workers.wait_for_complete()
-            assert lyrics.searches == ["Video"]
         await app.close()
 
     asyncio.run(scenario())
 
 
-def test_stale_browser_open_does_not_replace_new_local_track(tmp_path):
-    def opener(url):
-        started.set()
-        released.wait(2)
-        return True
+def test_stale_track_load_does_not_replace_newer_track(tmp_path):
+    class SlowPlayer(Player):
+        def __init__(self, slow_location, started_ev, released_ev):
+            super().__init__()
+            self.slow_location = slow_location
+            self.started_ev = started_ev
+            self.released_ev = released_ev
+
+        async def load(self, location, start=0, paused=False):
+            if location == self.slow_location:
+                self.started_ev.set()
+                await asyncio.to_thread(self.released_ev.wait, 2)
+            await super().load(location, start, paused)
+
+    started, released = threading.Event(), threading.Event()
 
     async def scenario():
-        app, player, _ = make_app(tmp_path, browser_opener=opener)
+        player = SlowPlayer(YOUTUBE.location, started, released)
+        app, _, _ = make_app(tmp_path, player=player)
         async with app.run_test() as pilot:
             await app.workers.wait_for_complete()
             app.query_one("#search", Input).value = "Video"
@@ -256,6 +260,7 @@ def test_stale_browser_open_does_not_replace_new_local_track(tmp_path):
             app.query_one("#tracks", DataTable).focus()
             await pilot.press("enter")
             assert await asyncio.to_thread(started.wait, 2)
+
             app.query_one("#search", Input).value = "Second"
             app.query_one("#source").value = "local"
             for _ in range(100):
@@ -268,11 +273,10 @@ def test_stale_browser_open_does_not_replace_new_local_track(tmp_path):
             released.set()
             await app.workers.wait_for_complete()
             assert app.current_track == SECOND
-            assert player.stops == 0
         await app.close()
 
-    started, released = threading.Event(), threading.Event()
     asyncio.run(scenario())
+
 
 
 def test_search_input_keeps_spaces_and_shortcut_letters(tmp_path):

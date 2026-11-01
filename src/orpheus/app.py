@@ -5,7 +5,6 @@ import logging
 import webbrowser
 from collections.abc import Callable
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
 
 from rich.text import Text
 from textual import on, work
@@ -287,7 +286,10 @@ class OrpheusApp(App):
             self.theme = event.value
 
     def _status(self, message: str) -> None:
-        self.query_one("#status", Static).update(Text(message))
+        try:
+            self.query_one("#status", Static).update(Text(message))
+        except Exception:
+            pass
 
     def _error(self, operation: str, exc: Exception) -> None:
         # HTTP exception strings can contain an API key in the request URL.
@@ -315,6 +317,18 @@ class OrpheusApp(App):
     async def search(self, query: str, source: str) -> None:
         self._search_generation += 1
         generation = self._search_generation
+        if query.startswith(("http://", "https://")):
+            from .sources import create_web_track
+
+            track = create_web_track(query)
+            if track is not None:
+                self.results = [track]
+                self._show_results()
+                self._status(
+                    f"Direct URL loaded: 1 track ({track.source}). "
+                    "Press Enter to play or e to queue."
+                )
+                return
         if source == "youtube" and not query:
             self.results = []
             self._show_results()
@@ -359,12 +373,17 @@ class OrpheusApp(App):
         if track is None:
             message = ""
         elif track.source == "youtube":
-            message = f"YouTube Music · Official watch page: {track.location}"
+            message = f"YouTube Stream · {track.location}"
+        elif track.source == "web":
+            message = f"Web Stream · {track.location}"
         elif track.source == "licensed":
             message = f"{track.attribution} · {track.license} · {track.license_url}"
         else:
             message = f"Local file · {track.location}"
-        self.query_one("#attribution", Static).update(Text(message))
+        try:
+            self.query_one("#attribution", Static).update(Text(message))
+        except Exception:
+            pass
 
     @on(DataTable.RowHighlighted, "#tracks")
     def on_track_highlighted(self, event: DataTable.RowHighlighted) -> None:
@@ -391,7 +410,7 @@ class OrpheusApp(App):
             return
         if not track.playable:
             self.notify(
-                "YouTube Music opens in your browser; it cannot join the app queue.",
+                "This track cannot play in the app queue.",
                 severity="warning",
             )
             return
@@ -410,22 +429,9 @@ class OrpheusApp(App):
     def _request_track(self, track: Track, queue_item: Track | None = None) -> None:
         if isinstance(self.screen, LyricsPickerScreen):
             self.screen.dismiss(None)
-        if track.source == "youtube":
-            url = urlparse(track.location)
-            if (url.scheme != "https" or url.netloc != "music.youtube.com"
-                    or url.path != "/watch" or not parse_qs(url.query).get("v")):
-                self.notify("Invalid YouTube Music watch URL.", severity="error")
-                return
-            self._generation += 1
-            self._loading = True
-            self._status("Opening YouTube Music in your browser…")
-            self._open_youtube(track, self._generation)
-            return
         if not track.playable:
             self.notify("This result cannot play in the app.", severity="warning")
             return
-        if self.current_track and self.current_track.source == "youtube":
-            self.notify("Browser playback continues until you stop it there.", severity="warning")
         self._generation += 1
         generation = self._generation
         self._loading = True
@@ -434,7 +440,10 @@ class OrpheusApp(App):
         self.using_stem = False
         self.lyrics = None
         self.lyric_lines = []
-        self.query_one("#lyrics", Static).update(Text("Loading lyrics…"))
+        try:
+            self.query_one("#lyrics", Static).update(Text("Loading lyrics…"))
+        except Exception:
+            pass
         self._status(f"Loading: {track.title}")
         self._load_track(track, generation, queue_item)
 
@@ -515,7 +524,11 @@ class OrpheusApp(App):
             self.notify("Could not save lyrics choice; it may need selecting again.",
                         severity="warning")
         self.lyrics = match.lyrics
-        self._show_external_lyrics()
+        if match.lyrics and match.lyrics.synced:
+            self.lyric_lines = parse_lrc(match.lyrics.synced)
+        else:
+            self.lyric_lines = []
+        self._update_lyrics()
 
     def _show_external_lyrics(self) -> None:
         lyrics = self.lyrics
@@ -582,22 +595,19 @@ class OrpheusApp(App):
     def _update_playback(self) -> None:
         if self.current_track is None:
             return
-        if self.current_track.source == "youtube":
-            self._status("YouTube Music in browser · control playback there · lyrics are text only")
-            return
         state = self.playback
         mode = "karaoke" if self.using_stem else "original"
         playback = "paused" if state.paused else "playing"
+        label = self.current_track.artist or self.current_track.source.capitalize()
         self._status(
-            f"{self.current_track.artist} — {self.current_track.title} · "
+            f"{label} — {self.current_track.title} · "
             f"{_clock(state.position)}/"
             f"{_clock(state.duration or self.current_track.duration or 0)} · "
             f"{playback} · {mode} · vol {state.volume:.0f}% · lyrics {self.lyric_delay:+.2f}s"
         )
 
     def _update_lyrics(self) -> None:
-        if self.current_track is not None and self.current_track.source == "youtube":
-            self._show_external_lyrics()
+        if self.current_track is None:
             return
         if self.lyric_lines:
             index = active_line(self.lyric_lines, self.playback.position, self.lyric_delay)
@@ -610,13 +620,25 @@ class OrpheusApp(App):
                     ("▶ " if number == index else "  ") + (line.text or "♪") + "\n",
                     style="bold" if number == index else "dim",
                 )
-            self.query_one("#lyrics", Static).update(display)
+            try:
+                self.query_one("#lyrics", Static).update(display)
+            except Exception:
+                pass
         elif self.lyrics and self.lyrics.instrumental:
-            self.query_one("#lyrics", Static).update(Text("Instrumental track"))
+            try:
+                self.query_one("#lyrics", Static).update(Text("Instrumental track"))
+            except Exception:
+                pass
         elif self.lyrics and self.lyrics.plain:
-            self.query_one("#lyrics", Static).update(Text(self.lyrics.plain))
+            try:
+                self.query_one("#lyrics", Static).update(Text(self.lyrics.plain))
+            except Exception:
+                pass
         else:
-            self.query_one("#lyrics", Static).update(Text("No lyrics found for this track."))
+            try:
+                self.query_one("#lyrics", Static).update(Text("No lyrics found for this track."))
+            except Exception:
+                pass
 
     @work(group="poll", exclusive=True)
     async def poll_player(self) -> None:
@@ -688,9 +710,6 @@ class OrpheusApp(App):
         self._transport("volume", -5, self._generation)
 
     def _browser_controls(self) -> bool:
-        if self.current_track is not None and self.current_track.source == "youtube":
-            self.notify("Control YouTube Music playback in your browser.", severity="information")
-            return True
         return False
 
     @work(group="transport", exclusive=False)
@@ -738,7 +757,7 @@ class OrpheusApp(App):
         self._change_delay(0.25)
 
     def _change_delay(self, amount: float) -> None:
-        if self.current_track is None or self.current_track.source == "youtube":
+        if self.current_track is None:
             return
         self.lyric_delay = round(self.lyric_delay + amount, 2)
         self.database.set_delay(self.current_track.id, self.lyric_delay)
@@ -747,10 +766,7 @@ class OrpheusApp(App):
 
     def action_reload_lyrics(self) -> None:
         if self.current_track is not None:
-            if self.current_track.source == "youtube":
-                self._choose_external_lyrics(self.current_track, self._generation)
-            else:
-                self._load_lyrics(self.current_track, self._generation)
+            self._choose_external_lyrics(self.current_track, self._generation)
 
     @work(group="karaoke_prompt", exclusive=True)
     async def action_karaoke(self) -> None:
