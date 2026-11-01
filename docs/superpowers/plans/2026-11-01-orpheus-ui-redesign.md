@@ -1,6 +1,6 @@
 # ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Redesign ORPHEUS into a cyberpunk-minimalist terminal music player with 3 distinct operational phases (Home, Search, Now Playing), unified by a Glitch Transition engine, Matrix rain, Deezer+yt-dlp audio resolver, adaptive Kitty/half-block album art, and interactive album management.
 
@@ -43,7 +43,7 @@
   - `render_half_blocks(image_bytes: bytes, max_width: int, max_height: int) -> str`
   - `get_placeholder_art(max_width: int, max_height: int) -> str`
 
-- [ ] **Step 1: Write failing tests for art rendering & detection**
+- [x] **Step 1: Write failing tests for art rendering & detection**
 
 Create `tests/test_art.py`:
 ```python
@@ -68,21 +68,21 @@ def test_placeholder_art_returns_ascii():
     assert "ORPHEUS" in art or "♪" in art or "─" in art
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_art.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'orpheus.art'`
 
-- [ ] **Step 3: Implement `src/orpheus/art.py`**
+- [x] **Step 3: Implement `src/orpheus/art.py`**
 
 Implement terminal graphics detection, Kitty escape sequence generator (`\033_G...`), 24-bit ANSI half-block renderer using Pillow downsampling with `▀` (foreground=top pixel RGB, background=bottom pixel RGB), and an ASCII vinyl/cassette placeholder.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_art.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/art.py tests/test_art.py
@@ -103,25 +103,25 @@ git commit -m "feat(art): add terminal graphics detection and half-block art ren
   - `class DeezerProvider`: `search(query: str) -> list[Track]`, `get_related(artist_id: str) -> list[Track]`
   - `class AudioResolver`: `resolve_stream_url(track: Track) -> tuple[str, str]` (stream_url, source_name) with ±5s duration tolerance, relaxing up to ±15s for Topic channels.
 
-- [ ] **Step 1: Write failing tests for Deezer provider and AudioResolver**
+- [x] **Step 1: Write failing tests for Deezer provider and AudioResolver**
 
 Create `tests/test_resolver.py` testing Deezer JSON search parsing, duration scoring, channel prioritization (Topic/Official), and Jamendo fallback.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_resolver.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'orpheus.resolver'`
 
-- [ ] **Step 3: Implement `src/orpheus/resolver.py`**
+- [x] **Step 3: Implement `src/orpheus/resolver.py`**
 
 Implement `DeezerProvider` using `https://api.deezer.com/search` and `AudioResolver` utilizing `yt-dlp --dump-json --flat-playlist` matching, duration scoring (±5s strict, ±15s Topic), and fallback.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_resolver.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/resolver.py tests/test_resolver.py
@@ -143,25 +143,25 @@ git commit -m "feat(resolver): implement deezer metadata provider and yt-dlp aud
   - `class MatrixRain(Widget)`: reactive falling Katakana/digits/symbols with tail fade and density control.
   - `class AsciiTitle(Widget)`: 3D block-pixel "ORPHEUS" (`█ ▀ ▄ ░ ▒ ▓`) with animations (`None`, `Wave`, `Pulse`).
 
-- [ ] **Step 1: Write failing tests for MatrixRain and AsciiTitle**
+- [x] **Step 1: Write failing tests for MatrixRain and AsciiTitle**
 
 Create `tests/test_visuals.py` verifying character generation, frame stepping, title animation state, and color styling.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_visuals.py -v`
 Expected: FAIL with `ModuleNotFoundError`
 
-- [ ] **Step 3: Implement `src/orpheus/matrix.py` and `src/orpheus/title.py`**
+- [x] **Step 3: Implement `src/orpheus/matrix.py` and `src/orpheus/title.py`**
 
 Build `MatrixRain` widget with dynamic column allocation (15-25% density) and `AsciiTitle` with block font, shading, and periodic brightness sweep animations.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_visuals.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/matrix.py src/orpheus/title.py tests/test_visuals.py
@@ -181,25 +181,25 @@ git commit -m "feat(visuals): add MatrixRain canvas and AsciiTitle 3D block widg
 - Produces:
   - `class GlitchOverlay(Widget)`: 200–300ms overlay applying horizontal scanline character displacement, random glyph blocks (`█ ▓ ▒ ░ # % &`), accent color flashing, and phase completion callback.
 
-- [ ] **Step 1: Write failing tests for GlitchOverlay**
+- [x] **Step 1: Write failing tests for GlitchOverlay**
 
 Create `tests/test_glitch.py` testing glitch frame generation, duration lifecycle, character corruption mechanics, and completion callback.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_glitch.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'orpheus.glitch'`
 
-- [ ] **Step 3: Implement `src/orpheus/glitch.py`**
+- [x] **Step 3: Implement `src/orpheus/glitch.py`**
 
 Implement `GlitchOverlay` capturing the terminal buffer or generating structured cyberpunk horizontal tear noise over 6–9 frames (~250ms).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_glitch.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/glitch.py tests/test_glitch.py
@@ -219,25 +219,25 @@ git commit -m "feat(glitch): implement cyberpunk glitch transition engine"
 - Produces:
   - `class SettingsModal(ModalScreen)`: centered floating box with `┌─┐│└┘` borders, `── Group ──` headers, `◀ Value ▶` selectors, live preview callbacks, and `Enter`/`Esc` key bindings.
 
-- [ ] **Step 1: Write failing tests for SettingsModal**
+- [x] **Step 1: Write failing tests for SettingsModal**
 
 Create `tests/test_settings.py` testing item navigation with `↑/↓`, value changing with `←/→`, live preview triggers, Enter to save, and Esc to discard.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_settings.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'orpheus.settings'`
 
-- [ ] **Step 3: Implement `src/orpheus/settings.py`**
+- [x] **Step 3: Implement `src/orpheus/settings.py`**
 
 Implement `SettingsModal` supporting select, toggle, and numeric settings with custom styling and callbacks.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_settings.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/settings.py tests/test_settings.py
@@ -259,25 +259,25 @@ git commit -m "feat(settings): add reusable cyberpunk settings modal with live p
   - `class AlbumStore`: `create_album(name)`, `rename_album(old, new)`, `delete_album(name)`, `add_track(album_name, track)`, `list_albums()`, `get_album_tracks(name)`.
   - `class AlbumsModal(ModalScreen)`: interactive UI handling `[a]` dialog with `↑/↓`, `Enter` (add or create), `[m]` (modify/rename), `[d]` (delete).
 
-- [ ] **Step 1: Write failing tests for AlbumStore and AlbumsModal**
+- [x] **Step 1: Write failing tests for AlbumStore and AlbumsModal**
 
 Create `tests/test_albums.py` testing SQLite CRUD for user albums and modal navigation events.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_albums.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'orpheus.albums'`
 
-- [ ] **Step 3: Implement `src/orpheus/albums.py` and extend `src/orpheus/storage.py`**
+- [x] **Step 3: Implement `src/orpheus/albums.py` and extend `src/orpheus/storage.py`**
 
 Add SQLite schema for albums and album tracks; implement `AlbumStore` and `AlbumsModal`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_albums.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/albums.py src/orpheus/storage.py tests/test_albums.py
@@ -299,25 +299,25 @@ git commit -m "feat(albums): implement custom user albums storage and interactiv
   - `class HomeScreen(Screen)`: Home phase with dynamic shortcut bar (`[S] Settings  [f] Find  [q] Quit`, plus `[p] Playing` and `[s] Stop` when music is active).
   - `class SearchScreen(Screen)`: Search phase with 400ms debounce, Online Deezer results, `[Alt+l]` 50/50 split pane for Local library, `[a]` album assignment, and Enter to play.
 
-- [ ] **Step 1: Write failing tests for HomeScreen and SearchScreen**
+- [x] **Step 1: Write failing tests for HomeScreen and SearchScreen**
 
 Create `tests/test_phases_home_search.py` testing Home shortcut bar reactivity when audio is idle vs playing, Search query debouncing, split pane toggle `[Alt+l]`, and album modal triggering via `[a]`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_phases_home_search.py -v`
 Expected: FAIL with `ModuleNotFoundError`
 
-- [ ] **Step 3: Implement `src/orpheus/phases/home.py` and `src/orpheus/phases/search.py`**
+- [x] **Step 3: Implement `src/orpheus/phases/home.py` and `src/orpheus/phases/search.py`**
 
 Implement Home and Search screens adhering to layout, focus handling (`↓` to results, `Tab` between split panes), and shortcut bars.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_phases_home_search.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/phases/home.py src/orpheus/phases/search.py tests/test_phases_home_search.py
@@ -343,25 +343,25 @@ git commit -m "feat(phases): implement Home screen and Search screen with Deezer
     - Double-tap arrow key detection (`<= 350ms`) for ±10s seeking.
     - Background prefetch 20s before song end.
 
-- [ ] **Step 1: Write failing tests for NowPlayingScreen**
+- [x] **Step 1: Write failing tests for NowPlayingScreen**
 
 Create `tests/test_phase_now_playing.py` testing single-tap vs double-tap seek detection, synchronized lyrics scrolling, repeat mode cycling, karaoke toggle, and esc transition to Home.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_phase_now_playing.py -v`
 Expected: FAIL with `ModuleNotFoundError`
 
-- [ ] **Step 3: Implement `src/orpheus/phases/now_playing.py`**
+- [x] **Step 3: Implement `src/orpheus/phases/now_playing.py`**
 
 Implement Now Playing screen with 2-column layout, lyrics syncing, double-tap seek handling, and Demucs karaoke toggle.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_phase_now_playing.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/orpheus/phases/now_playing.py tests/test_phase_now_playing.py
@@ -383,20 +383,20 @@ git commit -m "feat(phases): implement Now Playing screen with synced lyrics, al
 - Produces:
   - Unified `OrpheusApp` orchestrating the 3 phases via Glitch transitions while preserving CLI arguments and continuous background audio playback.
 
-- [ ] **Step 1: Write failing e2e tests for phase transitions in `tests/test_app.py`**
+- [x] **Step 1: Write failing e2e tests for phase transitions in `tests/test_app.py`**
 
 Update `tests/test_app.py` to test navigating Home -> Search -> Now Playing -> Home with background playback, `[s]` Stop on Home, and `[p]` Playing return.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_app.py -v`
 Expected: FAIL matching new phase architecture expectations
 
-- [ ] **Step 3: Update `src/orpheus/app.py` and `src/orpheus/__main__.py`**
+- [x] **Step 3: Update `src/orpheus/app.py` and `src/orpheus/__main__.py`**
 
 Refactor `OrpheusApp` to host the 3 screen phases with Glitch transitions, wire settings modal, and preserve background audio when returning to Home.
 
-- [ ] **Step 4: Run full test suite & linter to verify 100% pass**
+- [x] **Step 4: Run full test suite & linter to verify 100% pass**
 
 Run: `pytest`
 Expected: 100% PASS
@@ -404,7 +404,7 @@ Run: `ruff check src tests`
 Expected: Zero errors
 Run: `graphify update .`
 
-- [ ] **Step 5: Commit & Push**
+- [x] **Step 5: Commit & Push**
 
 ```bash
 git add src/ tests/ docs/
