@@ -25,20 +25,38 @@ def make_app(tmp_path, theme=None):
 
 
 def test_presets_have_requested_names_and_modes():
-    assert DEFAULT_THEME == "github-light-contrast"
+    assert DEFAULT_THEME == "oasis-starlight"
     assert PRESET_LABELS == (
+        ("oasis-starlight", "Oasis Starlight (Light)"),
+        ("oasis-abyss", "Oasis Abyss (Dark)"),
+        ("catppuccin-latte", "Catppuccin Latte"),
+        ("catppuccin-frappe", "Catppuccin Frappé"),
+        ("catppuccin-macchiato", "Catppuccin Macchiato"),
+        ("catppuccin-mocha", "Catppuccin Mocha"),
+        ("flexoki-light", "Flexoki Light"),
+        ("flexoki-dark", "Flexoki Dark"),
+        ("github-light", "GitHub Light"),
+        ("github-dark", "GitHub Dark"),
+        ("github-light-contrast", "GitHub Light Contrast"),
+        ("github-dark-contrast", "GitHub Dark Contrast"),
         ("blackmetal", "BlackMetal"),
         ("sequoia-light-monochrome", "Sequoia Light Monochrome"),
-        ("catppuccin-latte", "Catppuccin Latte"),
-        ("github-dark-contrast", "GitHub Dark Contrast"),
-        ("github-light-contrast", "GitHub Light Contrast"),
     )
     assert [(theme.name, theme.dark) for theme in get_themes()] == [
+        ("oasis-starlight", False),
+        ("oasis-abyss", True),
+        ("catppuccin-latte", False),
+        ("catppuccin-frappe", True),
+        ("catppuccin-macchiato", True),
+        ("catppuccin-mocha", True),
+        ("flexoki-light", False),
+        ("flexoki-dark", True),
+        ("github-light", False),
+        ("github-dark", True),
+        ("github-light-contrast", False),
+        ("github-dark-contrast", True),
         ("blackmetal", True),
         ("sequoia-light-monochrome", False),
-        ("catppuccin-latte", False),
-        ("github-dark-contrast", True),
-        ("github-light-contrast", False),
     ]
 
 

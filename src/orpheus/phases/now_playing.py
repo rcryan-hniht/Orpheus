@@ -159,7 +159,8 @@ class SyncedLyricsWidget(Static):
     SyncedLyricsWidget {
         width: 100%;
         height: 100%;
-        padding: 1 2;
+        padding: 1 4;
+        padding-left: 16;
         background: transparent;
     }
     """
@@ -235,18 +236,18 @@ class SyncedLyricsWidget(Static):
             text.append("• • •\n\n", style="#404040")
 
         # Window of visible lines around active line
-        window_size = max(5, (self.size.height or 18) - 4)
+        window_size = max(16, (self.size.height or 18) - 4)
         start_idx = max(0, active_idx - (window_size // 2))
         end_idx = min(len(self.parsed_lines), start_idx + window_size)
 
         for i in range(start_idx, end_idx):
             line = self.parsed_lines[i]
             if i == active_idx:
-                text.append(f"▶  {line.text}\n", style=f"bold {accent} on #101020")
+                text.append(f"▶  {line.text}\n", style=f"bold {accent}")
             elif i < active_idx:
-                text.append(f"   {line.text}\n", style="#505050")
+                text.append(f"   {line.text}\n", style="dim")
             else:
-                text.append(f"   {line.text}\n", style="#909090")
+                text.append(f"   {line.text}\n")
 
         return text
 
