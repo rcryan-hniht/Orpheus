@@ -4,7 +4,7 @@ import html
 import json
 import math
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import httpx
 from mutagen import File as AudioFile
@@ -171,3 +171,48 @@ class YouTubeMetadataProvider:
 
     async def close(self) -> None:
         await self.client.aclose()
+
+
+def create_web_track(url: str) -> Track | None:
+    if not isinstance(url, str):
+        return None
+    url = url.strip()
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return None
+
+    host = parsed.hostname.lower()
+    if host in {"youtube.com", "www.youtube.com", "music.youtube.com", "m.youtube.com"}:
+        qs = parse_qs(parsed.query)
+        video_id = qs.get("v", [""])[0]
+        if video_id:
+            return Track(
+                id=f"youtube:{video_id}",
+                title=url,
+                location=url,
+                artist="YouTube",
+                source="youtube",
+            )
+    elif host in {"youtu.be", "www.youtu.be"}:
+        video_id = parsed.path.strip("/")
+        if video_id:
+            return Track(
+                id=f"youtube:{video_id}",
+                title=url,
+                location=url,
+                artist="YouTube",
+                source="youtube",
+            )
+
+    path_name = Path(parsed.path).name
+    title = path_name if path_name else url
+    track_id = f"web:{hashlib.sha256(url.encode()).hexdigest()[:16]}"
+    return Track(
+        id=track_id,
+        title=title,
+        location=url,
+        artist="Web Audio",
+        source="web",
+        attribution="Web Stream",
+    )
+

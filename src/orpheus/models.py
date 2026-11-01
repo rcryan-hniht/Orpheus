@@ -20,7 +20,7 @@ class Track:
 
     @property
     def playable(self) -> bool:
-        return self.source in {"local", "licensed"}
+        return self.source in {"local", "licensed", "youtube", "web"}
 
 
 @dataclass(frozen=True)

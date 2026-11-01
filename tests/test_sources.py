@@ -5,7 +5,12 @@ import wave
 import httpx
 import pytest
 
-from orpheus.sources import LicensedCatalogProvider, LocalProvider, YouTubeMetadataProvider
+from orpheus.sources import (
+    LicensedCatalogProvider,
+    LocalProvider,
+    YouTubeMetadataProvider,
+    create_web_track,
+)
 
 
 def test_local_search_recurses_and_skips_invalid_audio(tmp_path):
@@ -129,7 +134,37 @@ def test_youtube_provider_returns_metadata_only():
         assert len(tracks) == 1
         assert tracks[0].location == "https://music.youtube.com/watch?v=abc123"
         assert tracks[0].artist == ""  # Channel title is not a verified music artist.
-        assert not tracks[0].playable
+        assert tracks[0].playable
         await client.aclose()
 
     asyncio.run(run())
+
+
+def test_create_web_track_and_playability():
+    # YouTube watch URL
+    yt_track = create_web_track("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    assert yt_track is not None
+    assert yt_track.source == "youtube"
+    assert yt_track.id == "youtube:dQw4w9WgXcQ"
+    assert yt_track.playable
+
+    # youtu.be short URL
+    short_yt = create_web_track("https://youtu.be/dQw4w9WgXcQ")
+    assert short_yt is not None
+    assert short_yt.source == "youtube"
+    assert short_yt.id == "youtube:dQw4w9WgXcQ"
+    assert short_yt.playable
+
+    # Generic web audio stream
+    web_track = create_web_track("https://example.com/audio/stream.mp3?token=123")
+    assert web_track is not None
+    assert web_track.source == "web"
+    assert web_track.title == "stream.mp3"
+    assert web_track.location == "https://example.com/audio/stream.mp3?token=123"
+    assert web_track.playable
+
+    # Invalid non-web schemes
+    assert create_web_track("file:///etc/hosts") is None
+    assert create_web_track("javascript:void(0)") is None
+    assert create_web_track("plain query") is None
+
