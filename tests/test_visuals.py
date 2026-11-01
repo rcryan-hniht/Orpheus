@@ -20,6 +20,16 @@ def test_matrix_rain_step():
     assert any(len(col.tail) > 0 for col in matrix.columns)
 
 
+def test_matrix_rain_uses_pure_japanese_katakana():
+    from orpheus.matrix import KATAKANA
+
+    # Must contain Japanese Katakana
+    assert "ｱ" in KATAKANA and "ﾜ" in KATAKANA
+    # Must NOT contain ugly math and punctuation symbols
+    for bad_char in ":*+<>~=#$%&\\/":
+        assert bad_char not in KATAKANA
+
+
 def test_ascii_title_render():
     title = AsciiTitle(animation="wave", accent_color="blue")
     text = title.render_frame(width=80)

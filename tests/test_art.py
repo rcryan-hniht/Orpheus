@@ -49,6 +49,13 @@ def test_encode_kitty_graphics_escapes():
     assert "a=T,f=100" in seq or "m=0" in seq
 
 
+def test_get_kitty_delete_command():
+    from orpheus.art import get_kitty_delete_command
+
+    cmd = get_kitty_delete_command()
+    assert cmd == "\033_Ga=d,d=a\033\\"
+
+
 def test_render_half_blocks_produces_unicode_blocks():
     img = Image.new("RGB", (4, 4), color=(0, 255, 0))
     buf = io.BytesIO()

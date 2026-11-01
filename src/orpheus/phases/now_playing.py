@@ -12,8 +12,11 @@ from textual.screen import Screen
 from textual.widgets import Static
 
 from orpheus.art import (
+    encode_kitty_graphics,
+    get_kitty_delete_command,
     get_placeholder_art,
     render_half_blocks,
+    supports_kitty_graphics,
 )
 from orpheus.lyrics import LyricLine, active_line, parse_lrc
 from orpheus.models import Lyrics, PlaybackState, Track
@@ -41,7 +44,7 @@ def format_progress_bar(position: float, duration: float, width: int = 24) -> st
 
 
 class AlbumArtWidget(Static):
-    """Renders album cover art using ANSI half-block downsampling (chafa style)."""
+    """Renders album cover art using native Kitty Graphics on Ghostty/Kitty or ANSI half-blocks."""
 
     DEFAULT_CSS = """
     AlbumArtWidget {
@@ -62,11 +65,16 @@ class AlbumArtWidget(Static):
     ) -> None:
         super().__init__(name=name, id=id, classes=classes)
         self.cover_url = cover_url
-        self._rendered_art = ""
+        self._raw_bytes: bytes | None = None
+        self._half_blocks: str = ""
         self._loaded_url = ""
 
     def on_mount(self) -> None:
         self._update_art()
+
+    def on_unmount(self) -> None:
+        if supports_kitty_graphics():
+            self._write_terminal(get_kitty_delete_command())
 
     def set_cover_url(self, url: str) -> None:
         if url != self._loaded_url:
@@ -75,12 +83,10 @@ class AlbumArtWidget(Static):
 
     def _update_art(self) -> None:
         if not self.cover_url:
-            self._rendered_art = get_placeholder_art(28, 12)
-            self.refresh()
-            return
-
-        if self.cover_url in _ART_CACHE:
-            self._rendered_art = _ART_CACHE[self.cover_url]
+            self._raw_bytes = None
+            self._half_blocks = get_placeholder_art(28, 12)
+            if supports_kitty_graphics():
+                self._write_terminal(get_kitty_delete_command())
             self.refresh()
             return
 
@@ -95,21 +101,54 @@ class AlbumArtWidget(Static):
                     return
                 if resp.status_code == 200:
                     raw = resp.content
-                    rendered = render_half_blocks(raw, max_width=30, max_height=14)
-                    _ART_CACHE[url] = rendered
-                    self._rendered_art = rendered
+                    self._raw_bytes = raw
+                    self._half_blocks = render_half_blocks(raw, max_width=30, max_height=14)
                     self.refresh()
+                    if supports_kitty_graphics():
+                        self.set_timer(0.05, self._draw_kitty)
                     return
         except Exception:
             pass
         if url == self.cover_url:
-            self._rendered_art = get_placeholder_art(28, 12)
+            self._raw_bytes = None
+            self._half_blocks = get_placeholder_art(28, 12)
             self.refresh()
 
+    def _draw_kitty(self) -> None:
+        if not self.is_mounted or not self._raw_bytes or not supports_kitty_graphics():
+            return
+        region = self.region
+        x = max(1, region.x + 1)
+        y = max(1, region.y + 1)
+        cols = max(10, min(32, region.width or 28))
+        rows = max(6, min(14, region.height or 12))
+        kitty_seq = encode_kitty_graphics(self._raw_bytes, cols=cols, rows=rows)
+        move_and_draw = f"\033[s\033[{y};{x}H{kitty_seq}\033[u"
+        self._write_terminal(move_and_draw)
+
+    def _write_terminal(self, data: str) -> None:
+        try:
+            if hasattr(self.app, "_driver") and hasattr(self.app._driver, "write"):
+                self.app._driver.write(data)
+            else:
+                import sys
+
+                sys.stdout.write(data)
+                sys.stdout.flush()
+        except Exception:
+            pass
+
     def render(self) -> Text:
-        if not self._rendered_art:
+        if supports_kitty_graphics() and self._raw_bytes:
+            # Ghostty/Kitty: reserve empty rectangular area so native image shows through
+            self.app.call_later(self._draw_kitty)
+            h = max(6, min(14, self.size.height or 12))
+            w = max(10, min(32, self.size.width or 28))
+            return Text(" " * w + ("\n" + " " * w) * (h - 1))
+        # Non-Ghostty/Kitty fallback: ANSI half-blocks
+        if not self._half_blocks:
             return Text.from_ansi(get_placeholder_art(28, 12))
-        return Text.from_ansi(self._rendered_art)
+        return Text.from_ansi(self._half_blocks)
 
 
 class SyncedLyricsWidget(Static):

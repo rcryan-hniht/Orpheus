@@ -6,7 +6,12 @@ from dataclasses import dataclass, field
 from rich.text import Text
 from textual.widget import Widget
 
-KATAKANA = "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ0123456789:*+<>~=#$%&"
+# Authentic Japanese Katakana characters and Matrix digits (no ugly math symbols)
+KATAKANA = (
+    "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ"
+    "ｲｸﾁﾄﾉﾌﾍﾎﾕﾖﾙﾚﾛﾝ"
+    "0123456789"
+)
 
 
 @dataclass
@@ -93,6 +98,11 @@ class MatrixRain(Widget):
                 char = random.choice(KATAKANA)
                 col.tail.append((int_y, char))
 
+            # Dynamic matrix character mutation during rain
+            if random.random() < 0.08 and col.tail:
+                idx = random.randint(0, len(col.tail) - 1)
+                col.tail[idx] = (col.tail[idx][0], random.choice(KATAKANA))
+
             # Trim tail
             cutoff = int_y - col.length
             col.tail = [(y, c) for y, c in col.tail if y > cutoff and y < h]
@@ -122,11 +132,16 @@ class MatrixRain(Widget):
             for y, ch in col.tail:
                 if 0 <= y < h:
                     if y == int_head:
-                        # Head character: bright white/bright green
-                        style = "bold #e0ffe0"
+                        # Head character: bright glowing white
+                        style = "bold #ffffff"
                     elif y >= int_head - 2:
-                        style = "#00ff66"
+                        # Upper tail: electric neon green
+                        style = "bold #00ff66"
+                    elif y >= int_head - 6:
+                        # Mid tail: authentic matrix green
+                        style = "#00cc55"
                     else:
+                        # Tail end: deep dark cyber green
                         style = "#005522"
                     grid[y][col.x] = (ch, style)
 

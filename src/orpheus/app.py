@@ -147,6 +147,16 @@ class OrpheusApp(App[None]):
 
     def switch_phase(self, phase_name: str) -> None:
         """Switch operational phase with cyberpunk Glitch transition."""
+        if phase_name != "now_playing":
+            from orpheus.art import get_kitty_delete_command, supports_kitty_graphics
+
+            if supports_kitty_graphics():
+                try:
+                    if hasattr(self, "_driver") and hasattr(self._driver, "write"):
+                        self._driver.write(get_kitty_delete_command())
+                except Exception:
+                    pass
+
         def apply_screen() -> None:
             if self.is_screen_installed(phase_name):
                 self.switch_screen(phase_name)

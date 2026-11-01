@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/app.py": {
-    "mtime": 1793553035.0499923,
-    "seen": 1793553069.3239672,
-    "ast_hash": "d6411993f67902745882ea30e808208d",
+    "mtime": 1793553723.8119075,
+    "seen": 1793553812.605793,
+    "ast_hash": "5d44a0e8e137a6d210107d215305cc1b",
     "semantic_hash": ""
   },
   "src/orpheus/lyrics.py": {
@@ -174,9 +174,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/art.py": {
-    "mtime": 1793549399.9643917,
-    "seen": 1793550266.3136318,
-    "ast_hash": "bf14b4ede27519983cbb2875da33d8d7",
+    "mtime": 1793553660.767634,
+    "seen": 1793553812.6057942,
+    "ast_hash": "37a98a4a3d5590d8cc71224f3f21b35d",
     "semantic_hash": ""
   },
   "src/orpheus/glitch.py": {
@@ -186,9 +186,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/matrix.py": {
-    "mtime": 1793549553.4441264,
-    "seen": 1793550266.3136368,
-    "ast_hash": "b993135b0d269ff583adce5f1a512c98",
+    "mtime": 1793553676.9339604,
+    "seen": 1793553812.605797,
+    "ast_hash": "6fa2a8328a4d2a55188d57a727c5ec12",
     "semantic_hash": ""
   },
   "src/orpheus/phases/__init__.py": {
@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/phases/now_playing.py": {
-    "mtime": 1793553007.2454305,
-    "seen": 1793553069.3239837,
-    "ast_hash": "9553729130fa135e463d399a830e75f5",
+    "mtime": 1793553747.485386,
+    "seen": 1793553812.6058016,
+    "ast_hash": "ecfd5ff1c75d682dd2e3aecc93806e88",
     "semantic_hash": ""
   },
   "src/orpheus/phases/search.py": {
@@ -240,9 +240,9 @@
     "semantic_hash": ""
   },
   "tests/test_art.py": {
-    "mtime": 1793549399.9643917,
-    "seen": 1793550266.3136654,
-    "ast_hash": "09e067f8e7af65cb7af6f6d285a9ef7e",
+    "mtime": 1793553781.8030791,
+    "seen": 1793553812.6058137,
+    "ast_hash": "0d42dee75751c03b64d943a6a4e94074",
     "semantic_hash": ""
   },
   "tests/test_glitch.py": {
@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "tests/test_visuals.py": {
-    "mtime": 1793549535.1087985,
-    "seen": 1793550266.3136952,
-    "ast_hash": "990316ebb1d971daa96d5e79c6873a59",
+    "mtime": 1793553772.9359,
+    "seen": 1793553812.6058304,
+    "ast_hash": "ca19f1e235fd91b138bc53e8348f0bf5",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md": {

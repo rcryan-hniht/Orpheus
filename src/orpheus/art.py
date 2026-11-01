@@ -13,14 +13,25 @@ def supports_kitty_graphics() -> bool:
         return True
     if os.environ.get("GHOSTTY_RESOURCES_DIR"):
         return True
-    if os.environ.get("TERM_PROGRAM") == "ghostty":
+    if os.environ.get("TERM_PROGRAM") in ("ghostty", "kitty"):
         return True
     return False
 
 
-def encode_kitty_graphics(image_bytes: bytes) -> str:
-    """Encode an image into Kitty Graphics Protocol escape sequences."""
-    b64 = base64.b64encode(image_bytes).decode("ascii")
+def encode_kitty_graphics(image_bytes: bytes, cols: int = 30, rows: int = 15) -> str:
+    """Encode an image into Kitty Graphics Protocol escape sequences scaled to cols x rows."""
+    try:
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        pixel_w = max(10, cols * 12)
+        pixel_h = max(10, rows * 24)
+        img.thumbnail((pixel_w, pixel_h), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        png_bytes = buf.getvalue()
+    except Exception:
+        png_bytes = image_bytes
+
+    b64 = base64.b64encode(png_bytes).decode("ascii")
     chunks = [b64[i : i + 4096] for i in range(0, len(b64), 4096)]
     if not chunks:
         return ""
@@ -30,10 +41,15 @@ def encode_kitty_graphics(image_bytes: bytes) -> str:
         is_last = i == len(chunks) - 1
         m = 0 if is_last else 1
         if i == 0:
-            out.append(f"\033_Ga=T,f=100,m={m};{chunk}\033\\")
+            out.append(f"\033_Ga=T,f=100,t=d,c={cols},r={rows},z=1,m={m};{chunk}\033\\")
         else:
             out.append(f"\033_Gm={m};{chunk}\033\\")
     return "".join(out)
+
+
+def get_kitty_delete_command() -> str:
+    """Return Kitty Graphics Protocol escape sequence to delete all placed images."""
+    return "\033_Ga=d,d=a\033\\"
 
 
 def render_half_blocks(image_bytes: bytes, max_width: int = 30, max_height: int = 15) -> str:
@@ -99,6 +115,6 @@ def get_placeholder_art(max_width: int = 30, max_height: int = 15) -> str:
             line_content = "──[   ♪ ♫ ♪  ]──".center(inner_w)
         else:
             line_content = " " * inner_w
-        lines.append("│" + line_content[:inner_w] + "│")
+        lines.append("│" + line_content + "│")
     lines.append(bottom)
     return "\n".join(lines)
