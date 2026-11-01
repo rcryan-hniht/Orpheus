@@ -13,6 +13,7 @@ from textual.screen import Screen
 from textual.widgets import Static
 
 from orpheus.art import (
+    compute_kitty_dimensions,
     encode_kitty_graphics,
     get_kitty_delete_command,
     get_placeholder_art,
@@ -69,6 +70,8 @@ class AlbumArtWidget(Static):
         self._raw_bytes: bytes | None = None
         self._half_blocks: str = ""
         self._loaded_url = ""
+        self._art_cols = 28
+        self._art_rows = 14
 
     def on_mount(self) -> None:
         self._update_art()
@@ -85,7 +88,9 @@ class AlbumArtWidget(Static):
     def _update_art(self) -> None:
         if not self.cover_url:
             self._raw_bytes = None
-            self._half_blocks = get_placeholder_art(28, 12)
+            self._art_cols = 28
+            self._art_rows = 14
+            self._half_blocks = get_placeholder_art(28, 14)
             if supports_kitty_graphics():
                 self._write_terminal(get_kitty_delete_command())
             self.refresh()
@@ -103,7 +108,10 @@ class AlbumArtWidget(Static):
                 if resp.status_code == 200:
                     raw = resp.content
                     self._raw_bytes = raw
-                    self._half_blocks = render_half_blocks(raw, max_width=30, max_height=14)
+                    cols, rows = compute_kitty_dimensions(raw, max_cols=28, max_rows=14)
+                    self._art_cols = cols
+                    self._art_rows = rows
+                    self._half_blocks = render_half_blocks(raw, max_width=cols, max_height=rows)
                     self.refresh()
                     if supports_kitty_graphics():
                         self.set_timer(0.05, self._draw_kitty)
@@ -112,15 +120,17 @@ class AlbumArtWidget(Static):
             pass
         if url == self.cover_url:
             self._raw_bytes = None
-            self._half_blocks = get_placeholder_art(28, 12)
+            self._art_cols = 28
+            self._art_rows = 14
+            self._half_blocks = get_placeholder_art(28, 14)
             self.refresh()
 
     def _draw_kitty(self) -> None:
         if not self.is_mounted or not self._raw_bytes or not supports_kitty_graphics():
             return
         region = self.region
-        cols = max(10, min(32, region.width or 28))
-        rows = max(6, min(14, region.height or 12))
+        cols = self._art_cols
+        rows = self._art_rows
         offset_x = max(0, (region.width - cols) // 2)
         x = max(1, region.x + 1 + offset_x)
         y = max(1, region.y + 1)
@@ -144,13 +154,19 @@ class AlbumArtWidget(Static):
         if supports_kitty_graphics() and self._raw_bytes:
             # Ghostty/Kitty: reserve empty rectangular area so native image shows through
             self.app.call_later(self._draw_kitty)
-            h = max(6, min(14, self.size.height or 12))
-            w = max(10, min(32, self.size.width or 28))
-            return Text(" " * w + ("\n" + " " * w) * (h - 1))
+            w = max(10, self.size.width or self._art_cols)
+            return Text(" " * w + ("\n" + " " * w) * (self._art_rows - 1))
         # Non-Ghostty/Kitty fallback: ANSI half-blocks
         if not self._half_blocks:
-            return Text.from_ansi(get_placeholder_art(28, 12))
-        return Text.from_ansi(self._half_blocks)
+            self._half_blocks = get_placeholder_art(28, 14)
+        lines = self._half_blocks.splitlines()
+        w = max(self._art_cols, self.size.width or 28)
+        centered = []
+        for line in lines:
+            plain_len = len(Text.from_ansi(line).plain)
+            pad = max(0, (w - plain_len) // 2)
+            centered.append(" " * pad + line)
+        return Text.from_ansi("\n".join(centered))
 
 
 class SyncedLyricsWidget(Static):

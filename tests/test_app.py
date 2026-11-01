@@ -185,3 +185,39 @@ def test_app_playlist_load_and_queue_navigation(tmp_path):
         await app.close()
 
     asyncio.run(scenario())
+
+
+def test_app_poll_player_album_vs_standalone(tmp_path):
+    async def scenario():
+        app, player, db = make_app(tmp_path)
+        with patch.object(
+            app.audio_resolver,
+            "resolve_stream_url",
+            new=AsyncMock(return_value=("/music/song.mp3", "local")),
+        ):
+            async with app.run_test():
+                # Case 1: Standalone track with no album -> stops when ended
+                app.play_resolved_track(LOCAL)
+                await asyncio.sleep(0.1)
+                assert app.current_album is None
+                assert app.queue == []
+
+                # Simulate track ended in player snapshot
+                player.state = PlaybackState(ended=True, position=180.0, duration=180.0)
+                await app.poll_player()
+                assert player.stops >= 1
+                assert app.current_track is None
+
+                # Case 2: In album -> advances to next track in album
+                app.load_playlist_and_play(LOCAL, queue=[SECOND], album="My Album")
+                await asyncio.sleep(0.1)
+                assert app.current_album == "My Album"
+                assert app.queue == [SECOND]
+
+                player.state = PlaybackState(ended=True, position=180.0, duration=180.0)
+                await app.poll_player()
+                # Should have transitioned to SECOND
+                assert app.current_track == SECOND
+        await app.close()
+
+    asyncio.run(scenario())

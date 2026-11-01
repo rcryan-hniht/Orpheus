@@ -23,7 +23,37 @@ def supports_kitty_graphics() -> bool:
     return False
 
 
-def encode_kitty_graphics(image_bytes: bytes, cols: int = 30, rows: int = 15) -> str:
+def compute_kitty_dimensions(
+    image_bytes: bytes | None, max_cols: int = 28, max_rows: int = 14
+) -> tuple[int, int]:
+    """Calculate (cols, rows) that preserves the image's true aspect ratio in the terminal.
+
+    In standard monospace terminal fonts, a character cell is approximately 1:2 aspect ratio
+    (width = 0.5 * height). For a square image (aspect 1.0), cols = 2 * rows.
+    """
+    if not image_bytes:
+        return max_cols, max_rows
+
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        w, h = img.size
+        aspect = (w / h) if h > 0 else 1.0
+    except Exception:
+        aspect = 1.0
+
+    target_rows = max_rows
+    target_cols = int(round(2 * target_rows * aspect))
+    if target_cols > max_cols:
+        target_cols = max_cols
+        target_rows = max(4, int(round(target_cols / (2 * aspect))))
+    elif target_cols < 8:
+        target_cols = 8
+        target_rows = max(4, int(round(target_cols / (2 * aspect))))
+
+    return target_cols, target_rows
+
+
+def encode_kitty_graphics(image_bytes: bytes, cols: int = 28, rows: int = 14) -> str:
     """Encode an image into Kitty Graphics Protocol escape sequences scaled to cols x rows."""
     try:
         img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -57,7 +87,7 @@ def get_kitty_delete_command() -> str:
     return "\033_Ga=d,d=a\033\\"
 
 
-def render_half_blocks(image_bytes: bytes, max_width: int = 30, max_height: int = 15) -> str:
+def render_half_blocks(image_bytes: bytes, max_width: int = 28, max_height: int = 14) -> str:
     """Render image downsampled to 24-bit ANSI half-block (▀▄) characters.
 
     Each character cell represents two vertical pixels (top=foreground, bottom=background).

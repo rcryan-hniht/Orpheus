@@ -155,8 +155,8 @@ def test_album_art_kitty_centering_calculation():
         with patch.object(AlbumArtWidget, "region", new_callable=lambda: mock_reg):
             art._draw_kitty()
         assert len(written) == 1
-        # Escape sequence should contain column 7: \033[1;7H
-        assert "\033[1;7H" in written[0]
+        # Escape sequence should contain column 9: \033[1;9H
+        assert "\033[1;9H" in written[0]
     finally:
         np_mod.supports_kitty_graphics = orig_supports
         np_mod.encode_kitty_graphics = orig_encode

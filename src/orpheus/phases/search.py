@@ -144,6 +144,7 @@ class SearchScreen(Screen):
         self.local_tracks = local_tracks or []
         self.albums_split: bool = False
         self.local_split: bool = False
+        self.current_selected_album: str | None = None
         self._debounce_timer: asyncio.TimerHandle | None = None
         self._online_results: list[Track] = []
         self._active_pane = "online"
@@ -357,6 +358,7 @@ class SearchScreen(Screen):
     async def _do_search(self, query: str, gen: int) -> None:
         if gen != self._search_generation or not self.is_mounted:
             return
+        self.current_selected_album = None
         if not query:
             try:
                 self.query_one("#online-table", DataTable).clear()
@@ -532,6 +534,7 @@ class SearchScreen(Screen):
             self.app.push_screen(AlbumsModal(store=store, target_track=track))
 
     def _select_and_open_album(self, album_name: str, play_immediately: bool = False) -> None:
+        self.current_selected_album = album_name
         store = getattr(self.safe_app, "album_store", None)
         if not store:
             return
@@ -553,7 +556,7 @@ class SearchScreen(Screen):
                     first_track = tracks[0]
                     queue = list(tracks[1:])
                     if hasattr(self.app, "load_playlist_and_play"):
-                        self.app.load_playlist_and_play(first_track, queue, [])
+                        self.app.load_playlist_and_play(first_track, queue, [], album=album_name)
                     elif hasattr(self.app, "play_resolved_track"):
                         self.app.play_resolved_track(first_track)
                     self._active_pane = "online"
@@ -584,8 +587,14 @@ class SearchScreen(Screen):
         if not track:
             track, queue, history = self._get_selected_track_and_context()
         if track:
+            album = (
+                self.current_selected_album
+                if (not self.local_split and self._active_pane == "online")
+                else None
+            )
+            effective_queue = queue if album else []
             if hasattr(self.app, "load_playlist_and_play"):
-                self.app.load_playlist_and_play(track, queue, history)
+                self.app.load_playlist_and_play(track, effective_queue, history, album=album)
             elif hasattr(self.app, "play_resolved_track"):
                 self.app.play_resolved_track(track)
 

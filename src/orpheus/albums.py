@@ -114,6 +114,20 @@ class AlbumStore:
                 continue
         return tracks
 
+    def find_album_for_track(self, track_id: str) -> tuple[str, list[Track]] | None:
+        """Find custom album containing this track and return (album_name, tracks)."""
+        row = self.db.connection.execute(
+            "SELECT a.name FROM custom_albums a "
+            "JOIN custom_album_tracks t ON a.id = t.album_id "
+            "WHERE t.track_id = ? LIMIT 1",
+            (track_id,),
+        ).fetchone()
+        if not row:
+            return None
+        album_name = row[0]
+        tracks = self.get_album_tracks(album_name)
+        return album_name, tracks
+
 
 class AlbumsView(Static):
     """Render list of albums for selection."""

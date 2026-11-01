@@ -65,3 +65,26 @@ def test_render_half_blocks_produces_unicode_blocks():
     rendered = render_half_blocks(raw, max_width=4, max_height=4)
     assert "▀" in rendered
     assert "\033[38;2;" in rendered or "\033[48;2;" in rendered
+
+
+def test_compute_kitty_dimensions_preserves_aspect_ratio():
+    from orpheus.art import compute_kitty_dimensions
+
+    # 1:1 Square image
+    img_sq = Image.new("RGB", (300, 300), color=(255, 255, 255))
+    buf = io.BytesIO()
+    img_sq.save(buf, format="PNG")
+    cols, rows = compute_kitty_dimensions(buf.getvalue(), max_cols=28, max_rows=14)
+    assert cols == 28
+    assert rows == 14
+    # Terminal aspect ratio: 28 cols / (14 rows * 2) = 1.0 (perfect square)
+    assert cols / (rows * 2) == 1.0
+
+    # 2:1 Wide image
+    img_wide = Image.new("RGB", (400, 200), color=(255, 255, 255))
+    buf_w = io.BytesIO()
+    img_wide.save(buf_w, format="PNG")
+    cols_w, rows_w = compute_kitty_dimensions(buf_w.getvalue(), max_cols=28, max_rows=14)
+    assert cols_w == 28
+    assert rows_w == 7
+    assert cols_w / (rows_w * 2) == 2.0
