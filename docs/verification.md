@@ -1,4 +1,4 @@
-# Xác minh TermMusic MVP
+# Xác minh Orpheus MVP
 
 Ngày kiểm tra: 2026-11-01. Python 3.14.4 trong virtualenv của workspace.
 
