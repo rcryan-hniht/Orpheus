@@ -244,10 +244,8 @@ class SyncedLyricsWidget(Static):
             line = self.parsed_lines[i]
             if i == active_idx:
                 text.append(f"▶  {line.text}\n", style=f"bold {accent}")
-            elif i < active_idx:
-                text.append(f"   {line.text}\n", style="dim")
             else:
-                text.append(f"   {line.text}\n")
+                text.append(f"   {line.text}\n", style="dim")
 
         return text
 
