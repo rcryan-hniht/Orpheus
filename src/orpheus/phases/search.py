@@ -48,6 +48,7 @@ class SearchStatusBar(Static):
             ("[Alt+l]", "Toggle Split"),
             ("[a]", "Add to Album"),
             ("[Enter]", "Play"),
+            ("[S]", "Settings"),
             ("[Esc]", "Home"),
         ]
         for i, (k, desc) in enumerate(items):
@@ -67,6 +68,8 @@ class SearchScreen(Screen):
         Binding("tab", "switch_pane", "Switch Pane", priority=True),
         Binding("shift+tab", "switch_pane", "Switch Pane", priority=True),
         Binding("a", "add_to_album", "Add to Album", priority=True),
+        Binding("S", "settings", "Settings", priority=False),
+        Binding("alt+s", "settings", "Settings", priority=True),
     ]
 
     DEFAULT_CSS = """
@@ -273,6 +276,10 @@ class SearchScreen(Screen):
         else:
             if hasattr(self.app, "switch_phase"):
                 self.app.switch_phase("home")
+
+    def action_settings(self) -> None:
+        if hasattr(self.app, "action_settings"):
+            self.app.action_settings()
 
     def action_add_to_album(self) -> None:
         track = self._get_highlighted_track()

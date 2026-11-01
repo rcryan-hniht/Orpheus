@@ -52,6 +52,7 @@ def test_now_playing_footer_render():
     assert "Seek" in rendered
     assert "[r]" in rendered
     assert "[k]" in rendered
+    assert "[S]" in rendered
     assert "[Esc]" in rendered
 
 

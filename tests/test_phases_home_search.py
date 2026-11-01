@@ -38,6 +38,7 @@ def test_search_status_bar_render():
     assert "[Alt+l]" in rendered
     assert "[a]" in rendered
     assert "[Enter]" in rendered
+    assert "[S]" in rendered
     assert "[Esc]" in rendered
 
 

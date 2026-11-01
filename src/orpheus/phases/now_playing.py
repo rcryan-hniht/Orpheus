@@ -236,6 +236,7 @@ class NowPlayingFooter(Static):
             ("Shift+→/←", "Next/Prev"),
             ("[r]", "Repeat"),
             ("[k]", "Karaoke"),
+            ("[S]", "Settings"),
             ("[Esc]", "Home"),
         ]
         for i, (k, desc) in enumerate(items):
@@ -257,6 +258,7 @@ class NowPlayingScreen(Screen):
         Binding("shift+right", "next_track", "Next", priority=True),
         Binding("r", "toggle_repeat", "Repeat", priority=True),
         Binding("k", "toggle_karaoke", "Karaoke", priority=True),
+        Binding("S", "settings", "Settings", priority=True),
         Binding("escape", "go_home", "Home", priority=True),
     ]
 
@@ -466,6 +468,11 @@ class NowPlayingScreen(Screen):
             if hasattr(res, "__await__"):
                 await res
         self.update_playback_state(self._playback_state)
+
+    def action_settings(self) -> None:
+        app = self.safe_app
+        if app and hasattr(app, "action_settings"):
+            app.action_settings()
 
     def action_go_home(self) -> None:
         app = self.safe_app

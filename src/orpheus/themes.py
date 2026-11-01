@@ -1,9 +1,7 @@
 """Built-in color presets. Theme objects are loaded only when the TUI starts."""
 
-DEFAULT_THEME = "cyberpunk"
+DEFAULT_THEME = "github-light-contrast"
 PRESET_LABELS = (
-    ("cyberpunk", "Cyberpunk Neon"),
-    ("matrix", "Matrix Green"),
     ("blackmetal", "BlackMetal"),
     ("sequoia-light-monochrome", "Sequoia Light Monochrome"),
     ("catppuccin-latte", "Catppuccin Latte"),
@@ -16,34 +14,6 @@ def get_themes():
     from textual.theme import Theme
 
     return (
-        Theme(
-            name="cyberpunk",
-            primary="#00ffcc",
-            secondary="#ff007f",
-            accent="#00ffcc",
-            foreground="#e0f8ff",
-            background="#07070d",
-            surface="#10101e",
-            panel="#18182c",
-            success="#00ff66",
-            warning="#ffaa00",
-            error="#ff0055",
-            dark=True,
-        ),
-        Theme(
-            name="matrix",
-            primary="#00ff66",
-            secondary="#00aa44",
-            accent="#00ff66",
-            foreground="#d0ffd0",
-            background="#020803",
-            surface="#06150a",
-            panel="#0d2613",
-            success="#00ff66",
-            warning="#ffff33",
-            error="#ff3333",
-            dark=True,
-        ),
         Theme(
             name="blackmetal",
             primary="#b7b7b7",

@@ -311,7 +311,7 @@ class OrpheusApp(App[None]):
                         label="Color Theme",
                         kind="select",
                         options=[slug for slug, _ in PRESET_LABELS],
-                        value=self.theme or "cyberpunk",
+                        value=self.theme or DEFAULT_THEME,
                     ),
                     SettingItem(
                         key="matrix_rain",

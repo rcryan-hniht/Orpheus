@@ -25,10 +25,8 @@ def make_app(tmp_path, theme=None):
 
 
 def test_presets_have_requested_names_and_modes():
-    assert DEFAULT_THEME == "cyberpunk"
+    assert DEFAULT_THEME == "github-light-contrast"
     assert PRESET_LABELS == (
-        ("cyberpunk", "Cyberpunk Neon"),
-        ("matrix", "Matrix Green"),
         ("blackmetal", "BlackMetal"),
         ("sequoia-light-monochrome", "Sequoia Light Monochrome"),
         ("catppuccin-latte", "Catppuccin Latte"),
@@ -36,8 +34,6 @@ def test_presets_have_requested_names_and_modes():
         ("github-light-contrast", "GitHub Light Contrast"),
     )
     assert [(theme.name, theme.dark) for theme in get_themes()] == [
-        ("cyberpunk", True),
-        ("matrix", True),
         ("blackmetal", True),
         ("sequoia-light-monochrome", False),
         ("catppuccin-latte", False),

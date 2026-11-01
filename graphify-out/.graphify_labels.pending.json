@@ -16,12 +16,12 @@
   "14": "2026-11-01-orpheus-themes.md",
   "15": "AlbumsModal",
   "16": "SettingsModal",
-  "17": "DeezerProvider",
-  "18": "SearchStatusBar",
+  "17": "GlitchOverlay",
+  "18": "HomeScreen",
   "19": "__main__.py",
-  "20": "HomeScreen",
+  "20": "MatrixRain",
   "21": "ShortcutBar",
-  "22": "._get_selected_track_and_context",
-  "23": "._get_active_table",
-  "24": "4. Phase Breakdown & Architectural Design"
+  "22": "AsciiTitle",
+  "23": "Review Focus",
+  "24": "generate_glitch_frame"
 }
