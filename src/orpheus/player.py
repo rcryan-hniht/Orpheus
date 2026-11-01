@@ -34,7 +34,10 @@ class MpvPlayer:
                 "--no-config",
                 "--no-terminal",
                 "--no-video",
-                "--ytdl=no",
+                "--ytdl=yes",
+                "--ytdl-format=bestaudio/best",
+                "--slang=vi,vie,en,eng",
+                "--alang=vi,vie,en,eng",
                 "--load-scripts=no",
                 "--network-timeout=15",
                 "--idle=yes",
@@ -133,7 +136,7 @@ class MpvPlayer:
             await self._command("set_property", "pause", True)
             await self._command("loadfile", location, "replace")
             try:
-                await asyncio.wait_for(self._file_loaded.wait(), 8)
+                await asyncio.wait_for(self._file_loaded.wait(), 20)
             except TimeoutError as exc:
                 raise RuntimeError("mpv could not load the track") from exc
             if self._disconnected:

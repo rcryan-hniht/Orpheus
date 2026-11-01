@@ -222,3 +222,27 @@ def test_missing_mpv_reports_clear_error():
         await player.close()
 
     asyncio.run(run())
+
+
+def test_mpv_player_ytdl_and_lang_flags_configured(monkeypatch):
+    captured_args = []
+
+    async def fake_create_subprocess_exec(executable, *args, **kwargs):
+        captured_args.extend(args)
+        raise RuntimeError("stop after capturing args")
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_create_subprocess_exec)
+
+    async def run():
+        player = MpvPlayer()
+        with pytest.raises(RuntimeError, match="stop after capturing args"):
+            await player.start()
+
+        assert "--ytdl=yes" in captured_args
+        assert "--ytdl-format=bestaudio/best" in captured_args
+        assert "--slang=vi,vie,en,eng" in captured_args
+        assert "--alang=vi,vie,en,eng" in captured_args
+        assert "--no-video" in captured_args
+
+    asyncio.run(run())
+
