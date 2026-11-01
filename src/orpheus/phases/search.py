@@ -92,13 +92,13 @@ class SearchStatusBar(Static):
 
 
 class SearchScreen(Screen):
-    """Search phase: Deezer search, navigation, [Alt+h] albums split, and [Alt+l] local split."""
+    """Search phase: MY ALBUM and online SEARCH side-by-side."""
 
     BINDINGS = [
         Binding("question_mark", "which_key", "Which key", priority=True),
         Binding("?", "which_key", "Which key", priority=True, show=False),
-        Binding("alt+h", "toggle_albums_split", "Split Albums", priority=True),
-        Binding("alt+l", "toggle_split", "Split/Single", priority=True),
+        Binding("alt+h", "toggle_albums_split", "Split Albums", priority=True, show=False),
+        Binding("alt+l", "toggle_split", "Split/Single", priority=True, show=False),
         Binding("escape", "handle_escape", "Back/Clear", priority=True),
         Binding("tab", "switch_pane", "Switch Pane", priority=False),
         Binding("shift+tab", "switch_pane", "Switch Pane", priority=False),
@@ -142,7 +142,18 @@ class SearchScreen(Screen):
         overflow: hidden;
     }
 
-    .search-pane {
+    #albums-pane {
+        width: 38;
+        min-width: 28;
+        max-width: 44;
+        height: 100%;
+        border: solid $panel;
+        padding: 0 1;
+        background: transparent;
+        overflow: hidden;
+    }
+
+    #online-pane {
         width: 1fr;
         height: 100%;
         border: solid $panel;
@@ -176,7 +187,7 @@ class SearchScreen(Screen):
         super().__init__(name=name, id=id, classes=classes)
         self.deezer_provider = deezer_provider or DeezerProvider()
         self.local_tracks = local_tracks or []
-        self.albums_split: bool = False
+        self.albums_split: bool = True
         self.local_split: bool = False
         self.current_selected_album: str | None = None
         self._debounce_timer: asyncio.TimerHandle | None = None
@@ -200,25 +211,18 @@ class SearchScreen(Screen):
 
         with Horizontal(id="search-panes"):
             with Vertical(id="albums-pane", classes="search-pane"):
-                yield Static("── MY ALBUMS ──", id="albums-header", classes="pane-header")
+                yield Static("── MY ALBUM ──", id="albums-header", classes="pane-header")
                 yield DataTable(id="albums-table")
 
             with Vertical(id="online-pane", classes="search-pane"):
-                yield Static(
-                    "── ONLINE SEARCH (DEEZER) ──", id="online-header", classes="pane-header"
-                )
+                yield Static("── SEARCH ──", id="online-header", classes="pane-header")
                 yield DataTable(id="online-table")
-
-            with Vertical(id="local-pane", classes="search-pane"):
-                yield Static("── LOCAL LIBRARY ──", id="local-header", classes="pane-header")
-                yield DataTable(id="local-table")
 
         yield SearchStatusBar(id="search-status")
 
     def on_mount(self) -> None:
-        # Hide albums and local panes by default
-        self.query_one("#albums-pane").display = False
-        self.query_one("#local-pane").display = False
+        self.albums_split = True
+        self.local_split = False
 
         # Init albums table
         albums_table = self.query_one("#albums-table", DataTable)
@@ -230,12 +234,6 @@ class SearchScreen(Screen):
         online_table = self.query_one("#online-table", DataTable)
         online_table.cursor_type = "row"
         online_table.add_columns("Title", "Artist", "Album", "Duration")
-
-        # Init local table
-        local_table = self.query_one("#local-table", DataTable)
-        local_table.cursor_type = "row"
-        local_table.add_columns("Title", "Artist", "Duration")
-        self._populate_local_table()
 
         # Focus search input initially
         self.query_one("#search-input", Input).focus()
@@ -251,18 +249,11 @@ class SearchScreen(Screen):
             panes.append(("online", self.query_one("#online-table", DataTable)))
         except Exception:
             pass
-        if self.local_split:
-            try:
-                panes.append(("local", self.query_one("#local-table", DataTable)))
-            except Exception:
-                pass
         return panes
 
     def _get_active_table(self) -> DataTable:
         if self._active_pane == "albums" and self.albums_split:
             return self.query_one("#albums-table", DataTable)
-        if self._active_pane == "local" and self.local_split:
-            return self.query_one("#local-table", DataTable)
         return self.query_one("#online-table", DataTable)
 
     def on_key(self, event: events.Key) -> None:
@@ -274,7 +265,11 @@ class SearchScreen(Screen):
                 if panes:
                     event.prevent_default()
                     event.stop()
-                    target = panes[0]
+                    # When pressing down from search bar, prefer search results if present
+                    if event.key == "down" and len(panes) > 1 and panes[1][1].row_count > 0:
+                        target = panes[1]
+                    else:
+                        target = panes[0]
                     self._active_pane = target[0]
                     target[1].focus()
                     if target[1].cursor_row is None or target[1].cursor_row < 0:
@@ -308,6 +303,22 @@ class SearchScreen(Screen):
                     if target[1].cursor_row is None or target[1].cursor_row < 0:
                         if target[1].row_count > 0:
                             target[1].cursor_coordinate = Coordinate(0, 0)
+        elif event.key == "right" and not inp.has_focus and self._active_pane == "albums":
+            event.prevent_default()
+            event.stop()
+            self._active_pane = "online"
+            tbl = self.query_one("#online-table", DataTable)
+            tbl.focus()
+            if tbl.cursor_row is None and tbl.row_count > 0:
+                tbl.cursor_coordinate = Coordinate(0, 0)
+        elif event.key == "left" and not inp.has_focus and self._active_pane == "online":
+            event.prevent_default()
+            event.stop()
+            self._active_pane = "albums"
+            tbl = self.query_one("#albums-table", DataTable)
+            tbl.focus()
+            if tbl.cursor_row is None and tbl.row_count > 0:
+                tbl.cursor_coordinate = Coordinate(0, 0)
         elif event.key in ("f", "ctrl+f"):
             if not inp.has_focus:
                 event.prevent_default()
@@ -407,11 +418,10 @@ class SearchScreen(Screen):
         if not query:
             try:
                 self.query_one("#online-table", DataTable).clear()
-                self.query_one("#online-header", Static).update("── ONLINE SEARCH (DEEZER) ──")
+                self.query_one("#online-header", Static).update("── SEARCH ──")
             except Exception:
                 pass
             self._online_results = []
-            self._populate_local_table()
             self._populate_albums_table()
             return
 
@@ -419,21 +429,19 @@ class SearchScreen(Screen):
             artist_name = extract_artist_name(query)
             try:
                 self.query_one("#online-header", Static).update(
-                    f"── ARTIST SEARCH: @{artist_name.upper()} (DEEZER) ──"
+                    f"── ARTIST SEARCH: @{artist_name.upper()} ──"
                 )
             except Exception:
                 pass
             tracks = await self.deezer_provider.search_by_artist(artist_name, limit=30)
-            self._populate_local_table(query)
             self._populate_albums_table(query)
         else:
             try:
-                self.query_one("#online-header", Static).update("── ONLINE SEARCH (DEEZER) ──")
+                self.query_one("#online-header", Static).update("── SEARCH ──")
             except Exception:
                 pass
             raw_tracks = await self.deezer_provider.search(query, limit=25)
             tracks = rank_tracks_by_query(raw_tracks, query)
-            self._populate_local_table(query)
             self._populate_albums_table(query)
 
         if gen != self._search_generation or not self.is_mounted:
@@ -612,9 +620,7 @@ class SearchScreen(Screen):
                             self.current_selected_album = None
                             self._online_results = []
                             self.query_one("#online-table", DataTable).clear()
-                            self.query_one("#online-header", Static).update(
-                                "── ONLINE SEARCH (DEEZER) ──"
-                            )
+                            self.query_one("#online-header", Static).update("── SEARCH ──")
                         self._populate_albums_table()
                         try:
                             if app and hasattr(app, "notify"):

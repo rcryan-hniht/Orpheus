@@ -58,27 +58,26 @@ def test_search_status_bar_render():
     assert "Playing" in rendered_playing
 
 
-def test_search_screen_albums_and_three_pane_split():
+def test_search_screen_albums_and_split():
     screen = SearchScreen()
-    assert screen.albums_split is False
+    # Albums split is True by default for two-pane layout: MY ALBUM and SEARCH
+    assert screen.albums_split is True
     assert screen.local_split is False
 
     # Toggle albums split (Alt+h)
     screen.action_toggle_albums_split()
+    assert screen.albums_split is False
+
+    # Toggle back on
+    screen.action_toggle_albums_split()
     assert screen.albums_split is True
 
-    # Toggle local split (Alt+l) -> now 3 panes
+    # Toggle local split (Alt+l)
     screen.action_toggle_split()
     assert screen.local_split is True
-    assert screen.albums_split is True
     assert screen.split_view is True
 
-    # Toggle off albums split -> 2 panes (online + local)
-    screen.action_toggle_albums_split()
-    assert screen.albums_split is False
-    assert screen.local_split is True
-
-    # Toggle off local split -> single pane
+    # Toggle off local split
     screen.action_toggle_split()
     assert screen.local_split is False
     assert screen.split_view is False

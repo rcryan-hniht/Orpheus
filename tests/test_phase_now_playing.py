@@ -205,6 +205,7 @@ def test_cava_visualizer_states():
 
     # 2. Playing state
     cava.set_playback(is_playing=True, is_paused=False)
+    cava._cava_reader.set_bars([0.6] * 24)
     for _ in range(5):
         cava._tick()
     playing_text = cava.render().plain

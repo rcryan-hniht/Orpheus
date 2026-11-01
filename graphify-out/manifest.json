@@ -204,15 +204,15 @@
     "semantic_hash": ""
   },
   "src/orpheus/phases/now_playing.py": {
-    "mtime": 1793565758.479929,
-    "seen": 1793565792.0441635,
-    "ast_hash": "e0e85c390a4dddc35c9a2d156eded757",
+    "mtime": 1793566755.8142724,
+    "seen": 1793566778.5412726,
+    "ast_hash": "7da42ddaf2facf7a30c2541f2393ae53",
     "semantic_hash": ""
   },
   "src/orpheus/phases/search.py": {
-    "mtime": 1793565226.3230343,
-    "seen": 1793565283.1344953,
-    "ast_hash": "40447352c008762b85f377cfd99848e5",
+    "mtime": 1793566761.4993746,
+    "seen": 1793566778.541274,
+    "ast_hash": "ab931f0ad4d4d0d5eee6b6de181e687f",
     "semantic_hash": ""
   },
   "src/orpheus/resolver.py": {
@@ -252,15 +252,15 @@
     "semantic_hash": ""
   },
   "tests/test_phase_now_playing.py": {
-    "mtime": 1793565765.5150597,
-    "seen": 1793565792.04418,
-    "ast_hash": "386366a596209e53c1f245c4f8677a13",
+    "mtime": 1793566654.3624482,
+    "seen": 1793566778.5413165,
+    "ast_hash": "5b7082765115cb6107e727fee61a1142",
     "semantic_hash": ""
   },
   "tests/test_phases_home_search.py": {
-    "mtime": 1793565257.096608,
-    "seen": 1793565283.134511,
-    "ast_hash": "52b02e72a421a7d483b674d2202aad6c",
+    "mtime": 1793566686.8940332,
+    "seen": 1793566778.541318,
+    "ast_hash": "f9d732abea90f6957d556601ce7b6213",
     "semantic_hash": ""
   },
   "tests/test_resolver.py": {
@@ -288,9 +288,21 @@
     "semantic_hash": ""
   },
   "src/orpheus/which_key.py": {
-    "mtime": 1793563734.3239954,
-    "seen": 1793563936.8011947,
-    "ast_hash": "14c08e13ece2e77693c77bfe676db0c1",
+    "mtime": 1793566624.3309083,
+    "seen": 1793566778.5413022,
+    "ast_hash": "7466094f8be830686e9719557eed935f",
+    "semantic_hash": ""
+  },
+  "src/orpheus/cava.py": {
+    "mtime": 1793566465.93506,
+    "seen": 1793566778.5412521,
+    "ast_hash": "114ed5e462d4bf67b24850d6f363ce8b",
+    "semantic_hash": ""
+  },
+  "tests/test_cava.py": {
+    "mtime": 1793566640.2621946,
+    "seen": 1793566778.5413115,
+    "ast_hash": "c4535d774c28b9f1cd18bbd63c26ff04",
     "semantic_hash": ""
   }
 }

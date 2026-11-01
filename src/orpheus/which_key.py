@@ -90,11 +90,10 @@ class WhichKeyModal(ModalScreen[None]):
                 ],
             ),
             (
-                "SEARCH PHASE (LIBRARY & ONLINE)",
+                "SEARCH PHASE (ALBUMS & ONLINE SEARCH)",
                 [
-                    ("Alt+h", "Toggle Albums Split Pane (Left)"),
-                    ("Alt+l", "Toggle Local Library Split Pane (Right)"),
-                    ("Tab / Shift+Tab", "Switch focus between active panes"),
+                    ("Tab / Shift+Tab", "Switch focus between Search, Albums, and Tracks"),
+                    ("← / →", "Navigate between My Album and Search panes"),
                     ("@artist <name>", "Filter search strictly by artist name"),
                     ("Enter", "Play selected track or open album"),
                     ("a", "Add highlighted track to custom Album"),

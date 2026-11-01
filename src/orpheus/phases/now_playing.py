@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import time
 from typing import Any
 
@@ -20,6 +19,7 @@ from orpheus.art import (
     render_half_blocks,
     supports_kitty_graphics,
 )
+from orpheus.cava import CavaReader
 from orpheus.lyrics import LyricLine, active_line, parse_lrc
 from orpheus.models import Lyrics, PlaybackState, Track
 
@@ -300,8 +300,8 @@ class CavaVisualizer(Static):
         self.is_playing = False
         self.is_paused = False
         self._heights: list[float] = [0.0] * num_bars
-        self._t: float = 0.0
         self._timer = None
+        self._cava_reader = CavaReader(num_bars=num_bars)
 
     @property
     def display_height(self) -> int:
@@ -316,19 +316,30 @@ class CavaVisualizer(Static):
         return 1
 
     def on_mount(self) -> None:
-        self._timer = self.set_interval(0.08, self._tick)
+        if self._cava_reader.available:
+            self._cava_reader.start()
+        self._timer = self.set_interval(0.06, self._tick)
+
+    def on_unmount(self) -> None:
+        if self._timer:
+            self._timer.stop()
+            self._timer = None
+        self._cava_reader.stop()
 
     def set_playback(self, is_playing: bool, is_paused: bool) -> None:
         was_playing = self.is_playing and not self.is_paused
         self.is_playing = is_playing
         self.is_paused = is_paused
         now_playing = self.is_playing and not self.is_paused
+        if now_playing and not self._cava_reader.is_running and self.is_mounted:
+            self._cava_reader.start()
+        elif not is_playing and self._cava_reader.is_running:
+            self._cava_reader.stop()
         if was_playing != now_playing:
             self.refresh()
 
     def reset(self) -> None:
         self._heights = [0.0] * self.num_bars
-        self._t = 0.0
         self.refresh()
 
     def _tick(self) -> None:
@@ -346,41 +357,24 @@ class CavaVisualizer(Static):
 
         if self.is_paused:
             changed = False
-            target_base = 0.25 if H > 1 else 0.8
-            target_alt = 0.15 if H > 1 else 0.4
-            scale = H if H > 1 else 1.0
+            decay = max(0.3, H * 0.1)
             for i in range(self.num_bars):
-                target = (target_base if (i % 2 == 0) else target_alt) * scale
-                if abs(self._heights[i] - target) > 0.1:
-                    if self._heights[i] > target:
-                        self._heights[i] = max(target, self._heights[i] - max(0.4, H * 0.1))
-                    else:
-                        self._heights[i] = min(target, self._heights[i] + max(0.2, H * 0.05))
+                if self._heights[i] > 0.0:
+                    self._heights[i] = max(0.0, self._heights[i] - decay)
                     changed = True
             if changed:
                 self.refresh()
             return
 
-        self._t += 0.08
-        t = self._t
-        # 124 BPM bass rhythm pulse
-        beat = (max(0.0, math.sin(t * 2.06 * math.pi * 2))) ** 6
+        # Real audio frequency FFT streaming from cava
+        raw_bars = self._cava_reader.get_bars() if self._cava_reader else []
+        if not raw_bars or len(raw_bars) < self.num_bars:
+            raw_bars = [0.0] * self.num_bars
 
+        decay = max(0.4, H * 0.12)
         for i in range(self.num_bars):
-            norm = i / max(1, self.num_bars - 1)
-            bass = beat * math.exp(-4.2 * norm) * 7.6
-            mids = (math.sin(t * 4.6 + i * 0.42) * 0.5 + 0.5) * math.sin(norm * math.pi) * 5.4
-            treble = (math.cos(t * 8.2 - i * 0.75) * 0.5 + 0.5) * (norm**1.35) * 4.0
-            jitter = (math.sin(t * 16.0 + i * 2.1) * 0.5 + 0.5) * 1.2
-
-            raw = max(0.2, min(8.0, bass + mids + treble + jitter))
-            if H > 1:
-                target = (raw / 8.0) * H
-                decay = max(0.5, H * 0.12)
-            else:
-                target = raw
-                decay = 0.7
-
+            val = raw_bars[i]
+            target = max(0.0, min(float(H), val * H))
             if target > self._heights[i]:
                 self._heights[i] = target
             else:
