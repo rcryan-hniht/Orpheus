@@ -13,6 +13,7 @@ class Track:
     license: str = ""
     license_url: str = ""
     attribution: str = ""
+    cover_url: str = ""
 
     @property
     def is_local(self) -> bool:
@@ -20,7 +21,7 @@ class Track:
 
     @property
     def playable(self) -> bool:
-        return self.source in {"local", "licensed", "youtube", "web"}
+        return self.source in {"local", "licensed", "youtube", "web", "deezer", "jamendo"}
 
 
 @dataclass(frozen=True)
