@@ -167,4 +167,3 @@ def test_create_web_track_and_playability():
     assert create_web_track("file:///etc/hosts") is None
     assert create_web_track("javascript:void(0)") is None
     assert create_web_track("plain query") is None
-

@@ -173,6 +173,7 @@ class SyncedLyricsWidget(Static):
         self.lyrics: Lyrics | None = None
         self.parsed_lines: list[LyricLine] = []
         self.current_position = 0.0
+        self._is_loading = False
 
     def _get_accent(self) -> str:
         try:
@@ -187,8 +188,13 @@ class SyncedLyricsWidget(Static):
             pass
         return "#00ffcc"
 
+    def set_loading(self, loading: bool = True) -> None:
+        self._is_loading = loading
+        self.refresh()
+
     def set_lyrics(self, lyrics: Lyrics | None) -> None:
         self.lyrics = lyrics
+        self._is_loading = False
         if lyrics and lyrics.synced:
             self.parsed_lines = parse_lrc(lyrics.synced)
         else:
@@ -202,8 +208,12 @@ class SyncedLyricsWidget(Static):
     def render(self) -> Text:
         accent = self._get_accent()
         text = Text()
-        if not self.lyrics:
+        if self._is_loading:
             text.append("Loading lyrics...\n", style="italic #505050")
+            return text
+
+        if not self.lyrics or (not self.lyrics.synced and not self.lyrics.plain):
+            text.append("No lyrics available for this track\n", style="italic #606060")
             return text
 
         if not self.parsed_lines:
@@ -212,7 +222,7 @@ class SyncedLyricsWidget(Static):
                 for line in self.lyrics.plain.splitlines():
                     text.append(line + "\n", style="#c0c0c0")
             else:
-                text.append("No lyrics available\n", style="italic #606060")
+                text.append("No lyrics available for this track\n", style="italic #606060")
             return text
 
         active_idx = active_line(self.parsed_lines, self.current_position)
@@ -275,7 +285,9 @@ class NowPlayingFooter(Static):
             ("Shift+→/←", "Next/Prev"),
             ("[r]", "Repeat"),
             ("[k]", "Karaoke"),
+            ("[f]", "Find"),
             ("[S]", "Settings"),
+            ("[q]", "Quit"),
             ("[Esc]", "Home"),
         ]
         for i, (k, desc) in enumerate(items):
@@ -297,7 +309,9 @@ class NowPlayingScreen(Screen):
         Binding("shift+right", "next_track", "Next", priority=True),
         Binding("r", "toggle_repeat", "Repeat", priority=True),
         Binding("k", "toggle_karaoke", "Karaoke", priority=True),
+        Binding("f", "find", "Find", priority=True),
         Binding("S", "settings", "Settings", priority=True),
+        Binding("q", "quit", "Quit", priority=True),
         Binding("escape", "go_home", "Home", priority=True),
     ]
 
@@ -398,7 +412,9 @@ class NowPlayingScreen(Screen):
 
         yield NowPlayingFooter(id="np-footer")
 
-    def update_track(self, track: Track | None, lyrics: Lyrics | None = None) -> None:
+    def update_track(
+        self, track: Track | None, lyrics: Lyrics | None = None, is_loading: bool = False
+    ) -> None:
         self.current_track = track
         try:
             art_w = self.query_one("#np-album-art", AlbumArtWidget)
@@ -408,7 +424,10 @@ class NowPlayingScreen(Screen):
             artist_album = f"{track.artist} — {track.album}" if track else ""
             self.query_one("#track-artist-album", Static).update(artist_album)
             lyrics_w = self.query_one("#np-lyrics", SyncedLyricsWidget)
-            lyrics_w.set_lyrics(lyrics)
+            if is_loading:
+                lyrics_w.set_loading(True)
+            else:
+                lyrics_w.set_lyrics(lyrics)
         except Exception:
             pass
 
@@ -438,10 +457,7 @@ class NowPlayingScreen(Screen):
     def calc_seek_delta(self, direction: str, now: float | None = None) -> float:
         """Calculate seek delta: single tap = ±5s, rapid double-tap (<=350ms) = ±10s."""
         current_time = time.monotonic() if now is None else now
-        is_double = (
-            self._last_tap_dir == direction
-            and (current_time - self._last_tap_time) <= 0.35
-        )
+        is_double = self._last_tap_dir == direction and (current_time - self._last_tap_time) <= 0.35
         self._last_tap_time = current_time
         self._last_tap_dir = direction
         return 10.0 if is_double else 5.0
@@ -512,6 +528,16 @@ class NowPlayingScreen(Screen):
         app = self.safe_app
         if app and hasattr(app, "action_settings"):
             app.action_settings()
+
+    def action_find(self) -> None:
+        app = self.safe_app
+        if app and hasattr(app, "switch_phase"):
+            app.switch_phase("search")
+
+    def action_quit(self) -> None:
+        app = self.safe_app
+        if app and hasattr(app, "exit"):
+            app.exit()
 
     def action_go_home(self) -> None:
         app = self.safe_app

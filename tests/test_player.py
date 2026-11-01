@@ -245,4 +245,3 @@ def test_mpv_player_ytdl_and_lang_flags_configured(monkeypatch):
         assert "--no-video" in captured_args
 
     asyncio.run(run())
-

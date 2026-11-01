@@ -65,9 +65,7 @@ class AlbumStore:
                 self.db.connection.execute(
                     "DELETE FROM custom_album_tracks WHERE album_id = ?", (album_id,)
                 )
-                self.db.connection.execute(
-                    "DELETE FROM custom_albums WHERE id = ?", (album_id,)
-                )
+                self.db.connection.execute("DELETE FROM custom_albums WHERE id = ?", (album_id,))
 
     def add_track(self, album_name: str, track: Track) -> None:
         with self.db.connection:
@@ -94,9 +92,7 @@ class AlbumStore:
                 )
 
     def list_albums(self) -> list[str]:
-        rows = self.db.connection.execute(
-            "SELECT name FROM custom_albums ORDER BY name"
-        ).fetchall()
+        rows = self.db.connection.execute("SELECT name FROM custom_albums ORDER BY name").fetchall()
         return [r[0] for r in rows]
 
     def get_album_tracks(self, album_name: str) -> list[Track]:

@@ -84,12 +84,15 @@ def test_audio_resolver_selects_closest_duration():
 
         resolver = AudioResolver()
 
-        with patch.object(
-            resolver, "_fetch_youtube_candidates", new=AsyncMock(return_value=fake_candidates)
-        ), patch.object(
-            resolver,
-            "_extract_direct_stream_url",
-            new=AsyncMock(return_value="https://googlevideo.com/stream"),
+        with (
+            patch.object(
+                resolver, "_fetch_youtube_candidates", new=AsyncMock(return_value=fake_candidates)
+            ),
+            patch.object(
+                resolver,
+                "_extract_direct_stream_url",
+                new=AsyncMock(return_value="https://googlevideo.com/stream"),
+            ),
         ):
             stream_url, source_name = await resolver.resolve_stream_url(track)
             assert stream_url == "https://googlevideo.com/stream"
@@ -111,12 +114,13 @@ def test_audio_resolver_fallback_to_jamendo_when_yt_fails():
 
         resolver = AudioResolver(jamendo_client_id="test_key")
 
-        with patch.object(
-            resolver, "_fetch_youtube_candidates", new=AsyncMock(return_value=[])
-        ), patch.object(
-            resolver,
-            "_fetch_jamendo_stream",
-            new=AsyncMock(return_value="https://jamendo.com/audio.mp3"),
+        with (
+            patch.object(resolver, "_fetch_youtube_candidates", new=AsyncMock(return_value=[])),
+            patch.object(
+                resolver,
+                "_fetch_jamendo_stream",
+                new=AsyncMock(return_value="https://jamendo.com/audio.mp3"),
+            ),
         ):
             stream_url, source_name = await resolver.resolve_stream_url(track)
             assert stream_url == "https://jamendo.com/audio.mp3"

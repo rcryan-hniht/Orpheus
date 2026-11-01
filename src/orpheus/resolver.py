@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
+import unicodedata
 import urllib.parse
 from typing import Any
 
@@ -11,6 +13,63 @@ import httpx
 from orpheus.models import Track
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_for_match(text: str) -> str:
+    """Normalize text by NFKC, lowercasing, and removing punctuation."""
+    if not text:
+        return ""
+    norm = unicodedata.normalize("NFKC", text).strip().casefold()
+    clean = re.sub(r"[^\w\s]", "", norm)
+    return " ".join(clean.split())
+
+
+def _extract_base_title(title: str) -> str:
+    """Strip bracketed/parenthetical additions (e.g., '(Remix)', '[Official]')."""
+    stripped = re.sub(r"\(.*?\)|\[.*?\]", "", title)
+    return _normalize_for_match(stripped)
+
+
+def rank_tracks_by_query(tracks: list[Track], query: str) -> list[Track]:
+    """Sort tracks so that songs matching the search query are ranked at the top.
+
+    Priority tiers:
+    0: Exact title match (e.g. query == "như một người rưng", track == "Như Một Người Rưng")
+    1: Base title match without parenthesized remixes/features
+    2: Title starts with query
+    3: Query is a word/substring in title
+    4: Query is found in artist name
+    5: Remaining results (preserving provider ranking)
+    """
+    clean_q = _normalize_for_match(query)
+    if not clean_q or not tracks:
+        return tracks
+
+    def score_track(item: tuple[int, Track]) -> tuple[int, int, int]:
+        idx, track = item
+        clean_title = _normalize_for_match(track.title)
+        base_title = _extract_base_title(track.title)
+        clean_artist = _normalize_for_match(track.artist)
+
+        if clean_title == clean_q:
+            tier = 0
+        elif base_title == clean_q:
+            tier = 1
+        elif clean_title.startswith(clean_q):
+            tier = 2
+        elif clean_q in clean_title:
+            tier = 3
+        elif clean_q in clean_artist:
+            tier = 4
+        else:
+            tier = 5
+
+        len_diff = abs(len(clean_title) - len(clean_q))
+        return (tier, len_diff, idx)
+
+    indexed_tracks = list(enumerate(tracks))
+    indexed_tracks.sort(key=score_track)
+    return [t for _, t in indexed_tracks]
 
 
 class DeezerProvider:
@@ -63,6 +122,7 @@ class DeezerProvider:
                         cover_url=album_info.get("cover_medium") or album_info.get("cover", ""),
                     )
                 )
+            tracks = rank_tracks_by_query(tracks, query)
             self._cache[query] = tracks
             return tracks
         except Exception as exc:
@@ -128,7 +188,10 @@ class AudioResolver:
         best_candidate = self._pick_best_candidate(candidates, track)
 
         if best_candidate and (best_candidate.get("url") or best_candidate.get("id")):
-            video_url = best_candidate.get("url") or f"https://www.youtube.com/watch?v={best_candidate['id']}"
+            video_url = (
+                best_candidate.get("url")
+                or f"https://www.youtube.com/watch?v={best_candidate['id']}"
+            )
             direct_url = await self._extract_direct_stream_url(video_url)
             if direct_url:
                 self._url_cache[track.id] = (direct_url, "youtube")

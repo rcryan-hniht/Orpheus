@@ -110,14 +110,29 @@ def test_search_returns_candidates_without_choosing_or_caching(tmp_path):
         requests.append(request)
         assert request.url.path == "/api/search"
         assert request.url.params["q"] == "A Song"
-        return httpx.Response(200, json=[
-            {"trackName": "A Song", "artistName": "Singer One", "albumName": "Album One",
-             "duration": 211.5, "plainLyrics": "First", "syncedLyrics": None,
-             "instrumental": False},
-            {"trackName": "A Song", "artistName": "Singer Two", "albumName": "Album Two",
-             "duration": 212, "plainLyrics": None, "syncedLyrics": "[00:01.00]Second",
-             "instrumental": False},
-        ])
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "trackName": "A Song",
+                    "artistName": "Singer One",
+                    "albumName": "Album One",
+                    "duration": 211.5,
+                    "plainLyrics": "First",
+                    "syncedLyrics": None,
+                    "instrumental": False,
+                },
+                {
+                    "trackName": "A Song",
+                    "artistName": "Singer Two",
+                    "albumName": "Album Two",
+                    "duration": 212,
+                    "plainLyrics": None,
+                    "syncedLyrics": "[00:01.00]Second",
+                    "instrumental": False,
+                },
+            ],
+        )
 
     async def run():
         db = Database(tmp_path / "music.sqlite")
@@ -131,8 +146,9 @@ def test_search_returns_candidates_without_choosing_or_caching(tmp_path):
 
         assert matches == [
             LyricsMatch("A Song", "Singer One", "Album One", 211.5, Lyrics(plain="First")),
-            LyricsMatch("A Song", "Singer Two", "Album Two", 212,
-                        Lyrics(synced="[00:01.00]Second")),
+            LyricsMatch(
+                "A Song", "Singer Two", "Album Two", 212, Lyrics(synced="[00:01.00]Second")
+            ),
         ]
         assert service.get_cached(track) is None
         service.cache_selection(track, matches[1].lyrics)
@@ -146,15 +162,26 @@ def test_search_returns_candidates_without_choosing_or_caching(tmp_path):
 
 
 def test_search_caps_results_at_twenty(tmp_path):
-    candidate = {"trackName": "Song", "artistName": "Artist", "albumName": "Album",
-                 "duration": 180, "plainLyrics": "Words", "syncedLyrics": None,
-                 "instrumental": False}
+    candidate = {
+        "trackName": "Song",
+        "artistName": "Artist",
+        "albumName": "Album",
+        "duration": 180,
+        "plainLyrics": "Words",
+        "syncedLyrics": None,
+        "instrumental": False,
+    }
 
     async def run():
         db = Database(tmp_path / "music.sqlite")
-        service = LyricsService(db, httpx.AsyncClient(transport=httpx.MockTransport(
-            lambda request: httpx.Response(200, json=[candidate] * 21)
-        )))
+        service = LyricsService(
+            db,
+            httpx.AsyncClient(
+                transport=httpx.MockTransport(
+                    lambda request: httpx.Response(200, json=[candidate] * 21)
+                )
+            ),
+        )
         assert len(await service.search("Song")) == 20
         await service.close()
         db.close()
@@ -162,23 +189,54 @@ def test_search_caps_results_at_twenty(tmp_path):
     asyncio.run(run())
 
 
-@pytest.mark.parametrize("bad", [
-    {}, [{"trackName": "Song", "artistName": "Artist", "albumName": "Album",
-          "duration": float("nan"), "plainLyrics": "Words", "syncedLyrics": None,
-          "instrumental": False}],
-    [{"trackName": "Song", "artistName": "Artist", "albumName": "Album",
-      "duration": 180, "plainLyrics": ["bad"], "syncedLyrics": None,
-      "instrumental": False}],
-    [{"trackName": 1, "artistName": "Artist", "albumName": "Album",
-      "duration": 180, "plainLyrics": "Words", "syncedLyrics": None,
-      "instrumental": False}],
-])
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {},
+        [
+            {
+                "trackName": "Song",
+                "artistName": "Artist",
+                "albumName": "Album",
+                "duration": float("nan"),
+                "plainLyrics": "Words",
+                "syncedLyrics": None,
+                "instrumental": False,
+            }
+        ],
+        [
+            {
+                "trackName": "Song",
+                "artistName": "Artist",
+                "albumName": "Album",
+                "duration": 180,
+                "plainLyrics": ["bad"],
+                "syncedLyrics": None,
+                "instrumental": False,
+            }
+        ],
+        [
+            {
+                "trackName": 1,
+                "artistName": "Artist",
+                "albumName": "Album",
+                "duration": 180,
+                "plainLyrics": "Words",
+                "syncedLyrics": None,
+                "instrumental": False,
+            }
+        ],
+    ],
+)
 def test_search_rejects_malformed_results_without_leaking_details(tmp_path, bad):
     async def run():
         db = Database(tmp_path / "music.sqlite")
-        service = LyricsService(db, httpx.AsyncClient(transport=httpx.MockTransport(
-            lambda request: httpx.Response(200, json=bad)
-        )))
+        service = LyricsService(
+            db,
+            httpx.AsyncClient(
+                transport=httpx.MockTransport(lambda request: httpx.Response(200, json=bad))
+            ),
+        )
         with pytest.raises(RuntimeError, match="Lyrics search unavailable"):
             await service.search("Song")
         await service.close()
@@ -190,11 +248,98 @@ def test_search_rejects_malformed_results_without_leaking_details(tmp_path, bad)
 def test_search_network_error_is_friendly(tmp_path):
     async def run():
         db = Database(tmp_path / "music.sqlite")
-        service = LyricsService(db, httpx.AsyncClient(transport=httpx.MockTransport(
-            lambda request: (_ for _ in ()).throw(httpx.ConnectError("private-token"))
-        )))
+        service = LyricsService(
+            db,
+            httpx.AsyncClient(
+                transport=httpx.MockTransport(
+                    lambda request: (_ for _ in ()).throw(httpx.ConnectError("private-token"))
+                )
+            ),
+        )
         with pytest.raises(RuntimeError, match="^Lyrics search unavailable; try again later$"):
             await service.search("Song")
+        await service.close()
+        db.close()
+
+    asyncio.run(run())
+
+
+def test_match_lyric_track_logic():
+    from orpheus.lyrics import match_lyric_track
+
+    # Exact match
+    assert match_lyric_track("Imagine", "John Lennon", "Imagine", "John Lennon") is True
+    # With parenthetical tag / remix
+    remix = match_lyric_track("Imagine", "John Lennon", "Imagine (Remastered)", "John Lennon")
+    assert remix is True
+    # Vietnamese accents
+    vn = match_lyric_track("Nơi Này Có Anh", "Sơn Tùng M-TP", "Nơi Này Có Anh", "Sơn Tùng M-TP")
+    assert vn is True
+    # Different song by same artist must fail
+    assert match_lyric_track("Như Một Người Rưng", "OSAD", "Người Âm Phủ", "OSAD") is False
+    # Empty title must fail
+    assert match_lyric_track("", "OSAD", "Track", "OSAD") is False
+
+
+def test_fetch_lyricfind_successful_match(tmp_path):
+    import asyncio
+
+    def reply_lf(request):
+        assert "lyrics.lyricfind.com" in str(request.url)
+        return httpx.Response(
+            200,
+            json={
+                "tracks": [
+                    {
+                        "title": "Imagine",
+                        "artist": {"name": "John Lennon"},
+                        "snippet": "Imagine there's no heaven\nIt's easy if you try",
+                        "slug": "john-lennon-imagine",
+                        "instrumental": False,
+                    }
+                ]
+            },
+        )
+
+    async def run():
+        db = Database(tmp_path / "music.sqlite")
+        lf_client = httpx.AsyncClient(transport=httpx.MockTransport(reply_lf))
+        service = LyricsService(db, lyricfind_client=lf_client)
+        track = Track("lf-1", "Imagine", "/imagine.mp3", artist="John Lennon")
+        res = await service.fetch_lyricfind(track)
+        assert res is not None
+        assert "Imagine there's no heaven" in res.plain
+        await service.close()
+        db.close()
+
+    asyncio.run(run())
+
+
+def test_fetch_lyricfind_rejects_unmatched_song(tmp_path):
+    import asyncio
+
+    def reply_lf(request):
+        return httpx.Response(
+            200,
+            json={
+                "tracks": [
+                    {
+                        "title": "Người Âm Phủ",
+                        "artist": {"name": "OSAD"},
+                        "snippet": "Ba giờ anh còn chưa ngủ",
+                    }
+                ]
+            },
+        )
+
+    async def run():
+        db = Database(tmp_path / "music.sqlite")
+        lf_client = httpx.AsyncClient(transport=httpx.MockTransport(reply_lf))
+        service = LyricsService(db, lyricfind_client=lf_client)
+        track = Track("lf-2", "Như Một Người Rưng", "/nhu-mot-nguoi-rung.mp3", artist="OSAD")
+        res = await service.fetch_lyricfind(track)
+        # Must be rejected because title does not match
+        assert res is None
         await service.close()
         db.close()
 

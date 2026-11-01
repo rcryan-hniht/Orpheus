@@ -7,11 +7,7 @@ from rich.text import Text
 from textual.widget import Widget
 
 # Authentic Japanese Katakana characters and Matrix digits (no ugly math symbols)
-KATAKANA = (
-    "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ"
-    "ｲｸﾁﾄﾉﾌﾍﾎﾕﾖﾙﾚﾛﾝ"
-    "0123456789"
-)
+KATAKANA = "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜｲｸﾁﾄﾉﾌﾍﾎﾕﾖﾙﾚﾛﾝ0123456789"
 
 
 @dataclass

@@ -55,6 +55,7 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.update:
         from .updater import run_cli_update
+
         sys.exit(run_cli_update())
 
     music_dir = (args.music_dir or Path.home() / "Music").expanduser()
@@ -84,9 +85,7 @@ def main(argv: list[str] | None = None) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     log = logging.getLogger("orpheus")
     log.setLevel(logging.WARNING)
-    log.addHandler(
-        RotatingFileHandler(data_dir / "orpheus.log", maxBytes=1_000_000, backupCount=2)
-    )
+    log.addHandler(RotatingFileHandler(data_dir / "orpheus.log", maxBytes=1_000_000, backupCount=2))
 
     database = Database(data_dir / "orpheus.sqlite")
     providers = {"local": LocalProvider(music_dir)}

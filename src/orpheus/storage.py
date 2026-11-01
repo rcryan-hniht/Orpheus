@@ -27,9 +27,7 @@ class Database:
         self.connection.commit()
 
     def get_setting(self, key: str) -> str | None:
-        row = self.connection.execute(
-            "SELECT value FROM settings WHERE key = ?", (key,)
-        ).fetchone()
+        row = self.connection.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
         return row[0] if row else None
 
     def set_setting(self, key: str, value: str) -> None:

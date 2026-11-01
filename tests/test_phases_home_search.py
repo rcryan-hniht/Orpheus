@@ -38,8 +38,50 @@ def test_search_status_bar_render():
     assert "[Alt+l]" in rendered
     assert "[a]" in rendered
     assert "[Enter]" in rendered
+    assert "[f]" in rendered
     assert "[S]" in rendered
+    assert "[q]" in rendered
     assert "[Esc]" in rendered
+
+
+def test_rank_tracks_by_query_exact_match_top():
+    from orpheus.resolver import rank_tracks_by_query
+
+    t1 = Track("1", "Như Một Người Dưng (Jerk Drill x Synth Club)", "l1", artist="Bảo Ngọc")
+    t2 = Track("2", "Như Một Người Rưng", "l2", artist="OSAD")
+    t3 = Track("3", "Như Một Giấc Mơ", "l3", artist="Mỹ Tâm")
+    tracks = [t1, t2, t3]
+
+    ranked = rank_tracks_by_query(tracks, "Như Một Người Rưng")
+    assert ranked[0].id == "2"
+    assert ranked[0].title == "Như Một Người Rưng"
+
+
+def test_rank_tracks_by_query_base_title_and_case_insensitive():
+    from orpheus.resolver import rank_tracks_by_query
+
+    t1 = Track("1", "Song Title (Remix 2026)", "l1", artist="Artist A")
+    t2 = Track("2", "Other Song", "l2", artist="Artist B")
+    t3 = Track("3", "Song Title", "l3", artist="Artist C")
+    tracks = [t1, t2, t3]
+
+    ranked = rank_tracks_by_query(tracks, "song title")
+    assert ranked[0].id == "3"  # Exact match
+    assert ranked[1].id == "1"  # Base title match
+
+
+def test_search_screen_action_quit_and_focus_search():
+    screen = SearchScreen()
+    exited = False
+
+    class DummyApp:
+        def exit(self):
+            nonlocal exited
+            exited = True
+
+    screen._app = DummyApp()
+    screen.action_quit()
+    assert exited is True
 
 
 def test_search_screen_playlist_context():
@@ -60,7 +102,9 @@ def test_search_screen_playlist_context():
             class DummyCellKey:
                 class DummyRowKey:
                     value = "track:2"
+
                 row_key = DummyRowKey()
+
             return DummyCellKey()
 
     screen.query_one = lambda sel, cls=None: DummyTable() if "table" in sel else None

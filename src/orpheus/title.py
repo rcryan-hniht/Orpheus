@@ -15,9 +15,7 @@ RAW_TITLE_LINES = [
 ]
 
 
-def get_title_lines(
-    style: str = "pulse", frame: int = 0, accent_color: str = "cyan"
-) -> list[str]:
+def get_title_lines(style: str = "pulse", frame: int = 0, accent_color: str = "cyan") -> list[str]:
     """Return stylized ASCII title lines with optional Wave/Pulse effects."""
     lines: list[str] = []
     style_lower = style.lower()

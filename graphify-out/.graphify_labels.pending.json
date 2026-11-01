@@ -1,5 +1,5 @@
 {
-  "0": "PlaybackState",
+  "0": "updater.py",
   "1": "MpvPlayer",
   "2": "OrpheusApp",
   "3": "Database",
@@ -9,7 +9,7 @@
   "7": "app.py",
   "8": "test_art.py",
   "9": "🎵 Orpheus",
-  "10": "SearchScreen",
+  "10": "ShortcutBar",
   "11": "orpheus",
   "12": "NowPlayingScreen",
   "13": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification",
@@ -22,5 +22,11 @@
   "20": "MatrixRain",
   "21": "matrix.py",
   "22": "AsciiTitle",
-  "24": "generate_glitch_frame"
+  "23": "SearchScreen",
+  "24": "generate_glitch_frame",
+  "25": "resolver.py",
+  "26": "SearchStatusBar",
+  "27": "test_phases_home_search.py",
+  "28": "._get_selected_track_and_context",
+  "29": "._get_active_table"
 }

@@ -183,7 +183,7 @@ class OrpheusApp(App[None]):
         self._generation += 1
         gen = self._generation
         self.current_track = track
-        self.now_playing_screen.update_track(track, lyrics=None)
+        self.now_playing_screen.update_track(track, lyrics=None, is_loading=True)
         self.home_screen.set_playing_state(True)
         self.switch_phase("now_playing")
         self.run_worker(self._async_resolve_and_play(track, gen), exclusive=False)
@@ -204,9 +204,11 @@ class OrpheusApp(App[None]):
                 lyrics = await self.lyrics_service.get(track)
                 if gen == self._generation:
                     self.current_lyrics = lyrics
-                    self.now_playing_screen.update_track(track, lyrics=lyrics)
+                    self.now_playing_screen.update_track(track, lyrics=lyrics, is_loading=False)
             except Exception as exc:
                 logger.warning("Lyrics error: %s", exc)
+                if gen == self._generation:
+                    self.now_playing_screen.update_track(track, lyrics=None, is_loading=False)
 
     async def poll_player(self) -> None:
         if not self.player:
@@ -300,9 +302,7 @@ class OrpheusApp(App[None]):
             self.play_resolved_track(self.current_track)
         else:
             try:
-                stem_path = await self.separator.prepare(
-                    self.current_track, rights_confirmed=True
-                )
+                stem_path = await self.separator.prepare(self.current_track, rights_confirmed=True)
                 if stem_path and self.player:
                     self._stem = stem_path
                     self._using_stem = True

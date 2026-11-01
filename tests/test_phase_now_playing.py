@@ -52,8 +52,41 @@ def test_now_playing_footer_render():
     assert "Seek" in rendered
     assert "[r]" in rendered
     assert "[k]" in rendered
+    assert "[f]" in rendered
     assert "[S]" in rendered
+    assert "[q]" in rendered
     assert "[Esc]" in rendered
+
+
+def test_now_playing_action_find_and_quit():
+    screen = NowPlayingScreen()
+    switched = ""
+    exited = False
+
+    class DummyApp:
+        def switch_phase(self, phase):
+            nonlocal switched
+            switched = phase
+
+        def exit(self):
+            nonlocal exited
+            exited = True
+
+    screen._app = DummyApp()
+    screen.action_find()
+    assert switched == "search"
+    screen.action_quit()
+    assert exited is True
+
+
+def test_synced_lyrics_widget_loading_and_empty():
+    from orpheus.phases.now_playing import SyncedLyricsWidget
+
+    w = SyncedLyricsWidget()
+    w.set_loading(True)
+    assert "Loading lyrics" in w.render().plain
+    w.set_lyrics(None)
+    assert "No lyrics available" in w.render().plain
 
 
 def test_album_art_widget_render_half_blocks():

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from rich.text import Text
 from textual import events
@@ -13,7 +14,7 @@ from textual.widgets import DataTable, Input, Static
 
 from orpheus.albums import AlbumsModal
 from orpheus.models import Track
-from orpheus.resolver import DeezerProvider
+from orpheus.resolver import DeezerProvider, rank_tracks_by_query
 
 
 class SearchStatusBar(Static):
@@ -48,7 +49,9 @@ class SearchStatusBar(Static):
             ("[Alt+l]", "Toggle Split"),
             ("[a]", "Add to Album"),
             ("[Enter]", "Play"),
+            ("[f]", "Find"),
             ("[S]", "Settings"),
+            ("[q]", "Quit"),
             ("[Esc]", "Home"),
         ]
         for i, (k, desc) in enumerate(items):
@@ -65,11 +68,14 @@ class SearchScreen(Screen):
     BINDINGS = [
         Binding("alt+l", "toggle_split", "Split/Single", priority=True),
         Binding("escape", "handle_escape", "Back/Clear", priority=True),
-        Binding("tab", "switch_pane", "Switch Pane", priority=True),
-        Binding("shift+tab", "switch_pane", "Switch Pane", priority=True),
+        Binding("tab", "switch_pane", "Switch Pane", priority=False),
+        Binding("shift+tab", "switch_pane", "Switch Pane", priority=False),
         Binding("a", "add_to_album", "Add to Album", priority=True),
+        Binding("f", "focus_search", "Find", priority=False),
         Binding("S", "settings", "Settings", priority=False),
         Binding("alt+s", "settings", "Settings", priority=True),
+        Binding("q", "quit", "Quit", priority=False),
+        Binding("ctrl+q", "quit", "Quit", priority=True),
     ]
 
     DEFAULT_CSS = """
@@ -171,22 +177,39 @@ class SearchScreen(Screen):
 
     def on_key(self, event: events.Key) -> None:
         inp = self.query_one("#search-input", Input)
-        if event.key == "down":
+        table = self._get_active_table()
+        if event.key in ("down", "tab"):
             if inp.has_focus:
-                table = self._get_active_table()
                 if table.row_count > 0:
                     event.prevent_default()
                     event.stop()
                     table.focus()
                     if table.cursor_row is None or table.cursor_row < 0:
                         table.cursor_coordinate = Coordinate(0, 0)
-        elif event.key == "up":
-            table = self._get_active_table()
+            elif table.has_focus and event.key == "tab" and not self.split_view:
+                event.prevent_default()
+                event.stop()
+                inp.focus()
+        elif event.key in ("up", "shift+tab", "backtab"):
             if table.has_focus:
-                if table.cursor_row is None or table.cursor_row <= 0:
+                if (
+                    event.key in ("shift+tab", "backtab")
+                    or table.cursor_row is None
+                    or table.cursor_row <= 0
+                ):
                     event.prevent_default()
                     event.stop()
                     inp.focus()
+            elif inp.has_focus and event.key in ("shift+tab", "backtab") and not self.split_view:
+                if table.row_count > 0:
+                    event.prevent_default()
+                    event.stop()
+                    table.focus()
+        elif event.key in ("f", "ctrl+f"):
+            if not inp.has_focus:
+                event.prevent_default()
+                event.stop()
+                inp.focus()
 
     def _populate_local_table(self) -> None:
         table = self.query_one("#local-table", DataTable)
@@ -229,9 +252,10 @@ class SearchScreen(Screen):
             self._online_results = []
             return
 
-        tracks = await self.deezer_provider.search(query, limit=25)
+        raw_tracks = await self.deezer_provider.search(query, limit=25)
         if gen != self._search_generation or not self.is_mounted:
             return
+        tracks = rank_tracks_by_query(raw_tracks, query)
         self._online_results = tracks
         try:
             table = self.query_one("#online-table", DataTable)
@@ -269,17 +293,37 @@ class SearchScreen(Screen):
             self._active_pane = "online"
             self.query_one("#online-table", DataTable).focus()
 
+    @property
+    def safe_app(self) -> Any:
+        try:
+            return self.app
+        except Exception:
+            return getattr(self, "_app", None)
+
     def action_handle_escape(self) -> None:
         inp = self.query_one("#search-input", Input)
         if inp.value:
             inp.value = ""
         else:
-            if hasattr(self.app, "switch_phase"):
-                self.app.switch_phase("home")
+            app = self.safe_app
+            if app and hasattr(app, "switch_phase"):
+                app.switch_phase("home")
+
+    def action_focus_search(self) -> None:
+        try:
+            self.query_one("#search-input", Input).focus()
+        except Exception:
+            pass
+
+    def action_quit(self) -> None:
+        app = self.safe_app
+        if app and hasattr(app, "exit"):
+            app.exit()
 
     def action_settings(self) -> None:
-        if hasattr(self.app, "action_settings"):
-            self.app.action_settings()
+        app = self.safe_app
+        if app and hasattr(app, "action_settings"):
+            app.action_settings()
 
     def action_add_to_album(self) -> None:
         track = self._get_highlighted_track()

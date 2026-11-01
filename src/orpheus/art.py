@@ -9,11 +9,16 @@ from PIL import Image
 
 def supports_kitty_graphics() -> bool:
     """Return True if current terminal environment supports Kitty Graphics Protocol."""
+    term = os.environ.get("TERM", "").lower()
+    if term == "dumb":
+        return False
     if os.environ.get("KITTY_WINDOW_ID"):
         return True
     if os.environ.get("GHOSTTY_RESOURCES_DIR"):
         return True
     if os.environ.get("TERM_PROGRAM") in ("ghostty", "kitty"):
+        return True
+    if "kitty" in term or "ghostty" in term:
         return True
     return False
 
@@ -87,9 +92,7 @@ def render_half_blocks(image_bytes: bytes, max_width: int = 30, max_height: int 
             else:
                 r2, g2, b2 = 0, 0, 0
             # ▀ with fg = top pixel, bg = bottom pixel
-            line_parts.append(
-                f"\033[38;2;{r1};{g1};{b1}m\033[48;2;{r2};{g2};{b2}m▀\033[0m"
-            )
+            line_parts.append(f"\033[38;2;{r1};{g1};{b1}m\033[48;2;{r2};{g2};{b2}m▀\033[0m")
         lines.append("".join(line_parts))
 
     return "\n".join(lines)
