@@ -344,3 +344,57 @@ def test_fetch_lyricfind_rejects_unmatched_song(tmp_path):
         db.close()
 
     asyncio.run(run())
+
+
+def test_clean_song_title():
+    from orpheus.lyrics import clean_song_title
+
+    assert clean_song_title("Quên người đã quá yêu Lofi/Remix") == "Quên người đã quá yêu"
+    assert clean_song_title("Quên Người Đã Quá Yêu (Lofi)") == "Quên Người Đã Quá Yêu"
+    assert clean_song_title("Quên Người Đã Quá Yêu (Remix)") == "Quên Người Đã Quá Yêu"
+    assert clean_song_title("Quên Người Đã Quá Yêu - Remix") == "Quên Người Đã Quá Yêu"
+    assert clean_song_title("Như Một Người Dưng (Jerk Drill x Synth Club)") == "Như Một Người Dưng"
+    assert clean_song_title("Hurt") == "Hurt"
+
+
+def test_lyrics_remix_lofi_fallback_to_base_title(tmp_path):
+    calls = []
+
+    def reply_lrclib(request):
+        track_name = request.url.params.get("track_name")
+        calls.append(track_name)
+        if track_name == "Quên Người Đã Quá Yêu (Lofi)":
+            return httpx.Response(404)
+        if track_name == "Quên Người Đã Quá Yêu":
+            assert "duration" not in request.url.params
+            return httpx.Response(
+                200,
+                json={
+                    "plainLyrics": "Đã từng xem nhau là tất cả",
+                    "syncedLyrics": "[00:10.00]Đã từng xem nhau là tất cả",
+                    "instrumental": False,
+                },
+            )
+        return httpx.Response(404)
+
+    async def run():
+        db = Database(tmp_path / "music.sqlite")
+        client = httpx.AsyncClient(transport=httpx.MockTransport(reply_lrclib))
+        service = LyricsService(db, client)
+        remix_track = Track(
+            "remix-1",
+            "Quên Người Đã Quá Yêu (Lofi)",
+            "/song.mp3",
+            artist="Hà Duy Thái",
+            duration=210.0,
+        )
+        res = await service.get(remix_track)
+        assert res is not None
+        assert res.plain == "Đã từng xem nhau là tất cả"
+        assert res.synced == "[00:10.00]Đã từng xem nhau là tất cả"
+        # Should have called with remix title first, then fallback to base title
+        assert calls == ["Quên Người Đã Quá Yêu (Lofi)", "Quên Người Đã Quá Yêu"]
+        await service.close()
+        db.close()
+
+    asyncio.run(run())

@@ -50,7 +50,7 @@ class AlbumArtWidget(Static):
     AlbumArtWidget {
         width: 100%;
         height: auto;
-        content-align: center middle;
+        content-align: center top;
         margin-bottom: 1;
         background: transparent;
     }
@@ -118,10 +118,11 @@ class AlbumArtWidget(Static):
         if not self.is_mounted or not self._raw_bytes or not supports_kitty_graphics():
             return
         region = self.region
-        x = max(1, region.x + 1)
-        y = max(1, region.y + 1)
         cols = max(10, min(32, region.width or 28))
         rows = max(6, min(14, region.height or 12))
+        offset_x = max(0, (region.width - cols) // 2)
+        x = max(1, region.x + 1 + offset_x)
+        y = max(1, region.y + 1)
         kitty_seq = encode_kitty_graphics(self._raw_bytes, cols=cols, rows=rows)
         move_and_draw = f"\033[s\033[{y};{x}H{kitty_seq}\033[u"
         self._write_terminal(move_and_draw)
@@ -322,6 +323,7 @@ class NowPlayingScreen(Screen):
         background: $background;
         layout: vertical;
         padding: 1 2;
+        overflow: hidden;
     }
 
     #now-playing-columns {
@@ -333,14 +335,15 @@ class NowPlayingScreen(Screen):
         width: 44;
         height: 100%;
         border-right: solid $panel;
-        padding-right: 2;
+        padding: 0 1;
+        align: center top;
         background: transparent;
     }
 
     #right-col {
         width: 1fr;
         height: 100%;
-        padding-left: 2;
+        padding: 0 1;
         background: transparent;
     }
 

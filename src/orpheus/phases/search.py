@@ -85,6 +85,7 @@ class SearchScreen(Screen):
         background: $background;
         layout: vertical;
         padding: 1 2;
+        overflow: hidden;
     }
 
     #search-bar-box {

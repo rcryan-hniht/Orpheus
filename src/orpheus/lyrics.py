@@ -55,6 +55,41 @@ def normalize_lyric_match_text(text: str) -> str:
     return " ".join(clean.split())
 
 
+def clean_song_title(title: str) -> str:
+    """Strip remix, lofi, cover, acoustic, and other version modifiers from song title."""
+    if not title:
+        return ""
+    cleaned = title
+    bracket_kw = "lofi|remix|acoustic|cover|live|version|speed|slowed|drill|edit|prod|feat|ft\\."
+    bracket_pat = rf"\s*[\(\[](?:[^\)\]]*(?:{bracket_kw})[^\)\]]*?)[\)\]]"
+    cleaned = re.sub(bracket_pat, "", cleaned, flags=re.IGNORECASE)
+
+    dash_kw = "lofi|remix|acoustic|cover|live|version|speed|slowed|drill|edit"
+    dash_pat = rf"\s*[-–—]\s*(?:{dash_kw}).*$"
+    cleaned = re.sub(dash_pat, "", cleaned, flags=re.IGNORECASE)
+
+    trail_kw = "|".join(
+        [
+            "lofi",
+            "remix",
+            "acoustic",
+            "slowed",
+            "reverb",
+            "speed\\s*up",
+            "cover",
+            "karaoke",
+            "instrumental",
+            "live",
+            "version",
+        ]
+    )
+    trailing_pat = rf"\s+(?:{trail_kw})(?:[/\s].*)?$"
+    cleaned = re.sub(trailing_pat, "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*[\(\[]\s*[\)\]]", "", cleaned)
+    cleaned = cleaned.strip()
+    return cleaned or title
+
+
 def match_lyric_track(
     track_title: str, track_artist: str, candidate_title: str, candidate_artist: str
 ) -> bool:
@@ -262,13 +297,7 @@ class LyricsService:
                 (track.id, json.dumps(asdict(lyrics)), time.time() + 30 * 24 * 3600),
             )
 
-    async def get(self, track: Track) -> Lyrics | None:
-        row = self.db.connection.execute(
-            "SELECT result, expires_at FROM lyrics_cache WHERE track_id = ?", (track.id,)
-        ).fetchone()
-        if row and row[1] > time.time():
-            return Lyrics(**json.loads(row[0])) if row[0] else None
-
+    async def _fetch_lyrics_network(self, track: Track) -> Lyrics | None:
         # 1. Search LyricFind
         lf_lyrics: Lyrics | None = None
         try:
@@ -306,22 +335,56 @@ class LyricsService:
         except (httpx.HTTPError, ValueError) as exc:
             if lf_lyrics:
                 lrclib_lyrics = None
-            elif row:
-                return Lyrics(**json.loads(row[0])) if row[0] else None
             else:
                 raise RuntimeError("Lyrics lookup unavailable; try again later") from exc
 
         # Prefer synchronized lyrics from LRCLIB; use LyricFind plain lyrics if available
         if lrclib_lyrics and lrclib_lyrics.synced:
-            result = Lyrics(
+            return Lyrics(
                 plain=lrclib_lyrics.plain or (lf_lyrics.plain if lf_lyrics else ""),
                 synced=lrclib_lyrics.synced,
                 instrumental=lrclib_lyrics.instrumental,
             )
         elif lf_lyrics:
-            result = lf_lyrics
-        else:
-            result = lrclib_lyrics
+            return lf_lyrics
+        return lrclib_lyrics
+
+    async def get(self, track: Track) -> Lyrics | None:
+        row = self.db.connection.execute(
+            "SELECT result, expires_at FROM lyrics_cache WHERE track_id = ?", (track.id,)
+        ).fetchone()
+        if row and row[1] > time.time():
+            return Lyrics(**json.loads(row[0])) if row[0] else None
+
+        result: Lyrics | None = None
+        try:
+            result = await self._fetch_lyrics_network(track)
+        except RuntimeError:
+            if row:
+                return Lyrics(**json.loads(row[0])) if row[0] else None
+            raise
+
+        # If lyrics not found for a remix/lofi version, search base title without duration limit
+        if not result:
+            clean_title = clean_song_title(track.title)
+            if clean_title.casefold() != track.title.casefold():
+                base_track = Track(
+                    id=track.id,
+                    title=clean_title,
+                    location=track.location,
+                    artist=track.artist,
+                    album=track.album,
+                    duration=None,
+                    source=track.source,
+                    license=track.license,
+                    license_url=track.license_url,
+                    attribution=track.attribution,
+                    cover_url=track.cover_url,
+                )
+                try:
+                    result = await self._fetch_lyrics_network(base_track)
+                except Exception:
+                    pass
 
         with self.db.connection:
             self.db.connection.execute(

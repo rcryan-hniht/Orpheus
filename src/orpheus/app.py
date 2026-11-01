@@ -11,7 +11,6 @@ from textual.app import App
 from textual.binding import Binding
 
 from orpheus.albums import AlbumStore
-from orpheus.glitch import GlitchOverlay
 from orpheus.lyrics import LyricsService
 from orpheus.models import Lyrics, PlaybackState, Track
 from orpheus.phases.home import HomeScreen
@@ -41,6 +40,7 @@ class OrpheusApp(App[None]):
     DEFAULT_CSS = """
     Screen {
         background: $background;
+        overflow: hidden;
     }
     """
 
@@ -115,11 +115,45 @@ class OrpheusApp(App[None]):
         self.install_screen(self.now_playing_screen, name="now_playing")
 
         self.push_screen("home")
+        self._sync_terminal_background()
         self._poll_timer = self.set_interval(0.5, self.poll_player)
+
+    def _sync_terminal_background(self) -> None:
+        """Set terminal emulator background color to match active theme via OSC 11."""
+        try:
+            if hasattr(self, "current_theme") and self.current_theme:
+                bg = getattr(self.current_theme, "background", None)
+                if bg:
+                    hex_color = str(bg)
+                    seq = f"\033]11;{hex_color}\007"
+                    if hasattr(self, "_driver") and hasattr(self._driver, "write"):
+                        self._driver.write(seq)
+                    else:
+                        import sys
+
+                        sys.stdout.write(seq)
+                        sys.stdout.flush()
+        except Exception:
+            pass
+
+    def _reset_terminal_background(self) -> None:
+        """Reset terminal emulator background color via OSC 111 on exit."""
+        try:
+            seq = "\033]111\007"
+            if hasattr(self, "_driver") and hasattr(self._driver, "write"):
+                self._driver.write(seq)
+            else:
+                import sys
+
+                sys.stdout.write(seq)
+                sys.stdout.flush()
+        except Exception:
+            pass
 
     def watch_theme(self, old_theme: str | None, new_theme: str | None) -> None:
         if new_theme and self.database:
             self.database.set_theme(new_theme)
+        self._sync_terminal_background()
         try:
             self.screen.refresh(layout=True)
         except Exception:
@@ -146,7 +180,7 @@ class OrpheusApp(App[None]):
                 logger.warning("Local scan error: %s", exc)
 
     def switch_phase(self, phase_name: str) -> None:
-        """Switch operational phase with cyberpunk Glitch transition."""
+        """Switch operational phase directly and cleanly."""
         if phase_name != "now_playing":
             from orpheus.art import get_kitty_delete_command, supports_kitty_graphics
 
@@ -157,15 +191,8 @@ class OrpheusApp(App[None]):
                 except Exception:
                     pass
 
-        def apply_screen() -> None:
-            if self.is_screen_installed(phase_name):
-                self.switch_screen(phase_name)
-
-        try:
-            overlay = GlitchOverlay(duration_seconds=0.15, on_complete=apply_screen)
-            self.screen.mount(overlay)
-        except Exception:
-            apply_screen()
+        if self.is_screen_installed(phase_name):
+            self.switch_screen(phase_name)
 
     def load_playlist_and_play(
         self, track: Track, queue: list[Track] | None = None, history: list[Track] | None = None
@@ -383,6 +410,7 @@ class OrpheusApp(App[None]):
         self.switch_phase("search")
 
     async def close(self) -> None:
+        self._reset_terminal_background()
         if self._poll_timer:
             self._poll_timer.stop()
         if self.player:

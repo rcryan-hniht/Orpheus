@@ -108,6 +108,7 @@ class HomeScreen(Screen):
         width: 100%;
         height: 100%;
         background: $background;
+        overflow: hidden;
     }
 
     #home-matrix {

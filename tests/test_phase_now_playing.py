@@ -97,6 +97,37 @@ def test_album_art_widget_render_half_blocks():
     assert "ORPHEUS" in rendered.plain or "CASSETTE" in rendered.plain
 
 
+def test_album_art_kitty_centering_calculation():
+    from unittest.mock import PropertyMock, patch
+
+    from textual.geometry import Region
+
+    art = AlbumArtWidget()
+    art._raw_bytes = b"fake-png-bytes"
+    art._is_mounted = True
+    written = []
+    art._write_terminal = lambda data: written.append(data)
+
+    mock_region = Region(x=0, y=0, width=44, height=20)
+
+    import orpheus.phases.now_playing as np_mod
+
+    orig_supports = np_mod.supports_kitty_graphics
+    orig_encode = np_mod.encode_kitty_graphics
+    try:
+        np_mod.supports_kitty_graphics = lambda: True
+        np_mod.encode_kitty_graphics = lambda b, cols, rows: "KITTY_PAYLOAD"
+        mock_reg = PropertyMock(return_value=mock_region)
+        with patch.object(AlbumArtWidget, "region", new_callable=lambda: mock_reg):
+            art._draw_kitty()
+        assert len(written) == 1
+        # Escape sequence should contain column 7: \033[1;7H
+        assert "\033[1;7H" in written[0]
+    finally:
+        np_mod.supports_kitty_graphics = orig_supports
+        np_mod.encode_kitty_graphics = orig_encode
+
+
 def test_now_playing_actions_await_app_methods():
     import asyncio
 

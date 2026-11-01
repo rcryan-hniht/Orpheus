@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "tests/test_lyrics.py": {
-    "mtime": 1793555557.0348015,
-    "seen": 1793555581.2009125,
-    "ast_hash": "e4dc52a9682f2111d65805e8fbb7af13",
+    "mtime": 1793556881.2301764,
+    "seen": 1793557100.233513,
+    "ast_hash": "31a0816ef08f7fd17270753f835b1821",
     "semantic_hash": ""
   },
   "tests/test_player.py": {
@@ -90,15 +90,15 @@
     "semantic_hash": ""
   },
   "src/orpheus/app.py": {
-    "mtime": 1793555557.0388017,
-    "seen": 1793555581.2008874,
-    "ast_hash": "692dbd85d8f527fa31f5c95fdf24767b",
+    "mtime": 1793557006.9206798,
+    "seen": 1793557100.2334795,
+    "ast_hash": "efd0bc18f9ef7b8503c3c7ade21a17b8",
     "semantic_hash": ""
   },
   "src/orpheus/lyrics.py": {
-    "mtime": 1793555557.0398016,
-    "seen": 1793555581.200891,
-    "ast_hash": "193da63b89251ad52f48803aee69be34",
+    "mtime": 1793557076.1870594,
+    "seen": 1793557100.2334843,
+    "ast_hash": "0a67f81b218786d0a1817e8039734c40",
     "semantic_hash": ""
   },
   "src/orpheus/models.py": {
@@ -198,21 +198,21 @@
     "semantic_hash": ""
   },
   "src/orpheus/phases/home.py": {
-    "mtime": 1793556090.8784351,
-    "seen": 1793556110.1660745,
-    "ast_hash": "b2a8423ec1e23c15bb40648cdcb163d6",
+    "mtime": 1793556772.6930149,
+    "seen": 1793557100.2334907,
+    "ast_hash": "6e772beeca798c789f015dad192a1586",
     "semantic_hash": ""
   },
   "src/orpheus/phases/now_playing.py": {
-    "mtime": 1793555557.0368016,
-    "seen": 1793555581.200897,
-    "ast_hash": "a902d372324766876dc5ab06063e4273",
+    "mtime": 1793556759.9857616,
+    "seen": 1793557100.2334921,
+    "ast_hash": "24580c1b822e713882e4fd643164565d",
     "semantic_hash": ""
   },
   "src/orpheus/phases/search.py": {
-    "mtime": 1793555524.2341483,
-    "seen": 1793555581.200898,
-    "ast_hash": "d59b3c938bfe28113bcbc5a6aa4d6380",
+    "mtime": 1793556787.7373145,
+    "seen": 1793557100.2334936,
+    "ast_hash": "cb7bdc449034c840e198714d81b33fd0",
     "semantic_hash": ""
   },
   "src/orpheus/resolver.py": {
@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/title.py": {
-    "mtime": 1793555980.3922343,
-    "seen": 1793556110.1661088,
-    "ast_hash": "21bf170952bc8163e4e049bf7adbb534",
+    "mtime": 1793557002.6755953,
+    "seen": 1793557100.2335043,
+    "ast_hash": "3683b79f91a03e6d3d4637cfaf8f8c60",
     "semantic_hash": ""
   },
   "tests/test_albums.py": {
@@ -252,9 +252,9 @@
     "semantic_hash": ""
   },
   "tests/test_phase_now_playing.py": {
-    "mtime": 1793555406.0497942,
-    "seen": 1793555581.2009134,
-    "ast_hash": "90a1dbab7cc6fb542fb8e2282de6f973",
+    "mtime": 1793557011.4907708,
+    "seen": 1793557100.2335145,
+    "ast_hash": "27e4c3557ec41530bb98a4b5a4481482",
     "semantic_hash": ""
   },
   "tests/test_phases_home_search.py": {
@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "tests/test_visuals.py": {
-    "mtime": 1793556090.8784351,
-    "seen": 1793556110.1661396,
-    "ast_hash": "7e1efff71c7b9596da21978e69c66578",
+    "mtime": 1793556863.2678187,
+    "seen": 1793557100.2335284,
+    "ast_hash": "60c012bcf97ab2e12592000c2d003351",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md": {
