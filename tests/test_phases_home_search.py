@@ -275,18 +275,24 @@ def test_search_screen_action_now_playing():
 def test_search_screen_action_delete_item_album_and_track():
     from unittest.mock import MagicMock
 
+    from orpheus.albums import ConfirmModal
+
     screen = SearchScreen()
     mock_store = MagicMock()
     mock_notify = MagicMock()
+    pushed_screens = []
 
     class DummyApp:
         album_store = mock_store
         queue = [Track("t1", "Track 1", "/1"), Track("t2", "Track 2", "/2")]
         notify = mock_notify
 
+        def push_screen(self, modal, callback=None):
+            pushed_screens.append((modal, callback))
+
     screen._app = DummyApp()
 
-    # Case 1: In #albums-table pane
+    # Case 1: In #albums-table pane -> requires confirmation
     screen._active_pane = "albums"
     screen.albums_split = True
 
@@ -306,6 +312,20 @@ def test_search_screen_action_delete_item_album_and_track():
     screen.query_one = lambda sel, cls=None: DummyAlbumsTable()
     screen._populate_albums_table = MagicMock()
     screen.action_delete_item()
+
+    # Verify ConfirmModal was pushed and not yet deleted
+    assert len(pushed_screens) == 1
+    modal, callback = pushed_screens.pop()
+    assert isinstance(modal, ConfirmModal)
+    assert "MyFavs" in modal.message
+    mock_store.delete_album.assert_not_called()
+
+    # When user cancels (No / False) -> no deletion
+    callback(False)
+    mock_store.delete_album.assert_not_called()
+
+    # When user confirms (Yes / True) -> deletion executes
+    callback(True)
     mock_store.delete_album.assert_called_once_with("MyFavs")
     mock_notify.assert_called_with(
         "Deleted album 'MyFavs'", title="Album Deleted", timeout=3.0, markup=False
@@ -393,3 +413,86 @@ def test_search_screen_down_arrow_routing_and_focus():
             assert online_tbl.has_focus is True
 
     asyncio.run(run())
+
+
+def test_search_screen_album_pane_shortcuts_and_status_bar():
+    from unittest.mock import MagicMock
+
+    from orpheus.albums import AlbumNameModal
+    from orpheus.phases.search import SearchStatusBar
+
+    screen = SearchScreen()
+    mock_store = MagicMock()
+    mock_notify = MagicMock()
+    pushed = []
+
+    class DummyApp:
+        album_store = mock_store
+        notify = mock_notify
+        current_track = None
+        current_theme = None
+
+        def push_screen(self, modal, callback=None):
+            pushed.append((modal, callback))
+
+    screen._app = DummyApp()
+    screen._active_pane = "albums"
+    screen.albums_split = True
+
+    # 1. Test status bar render when active pane is albums
+    status_bar = SearchStatusBar()
+    status_bar._app = DummyApp()
+    status_bar._screen = screen
+    rendered = status_bar.render().plain
+    assert "[a] New Album" in rendered
+    assert "[m] Rename" in rendered
+    assert "[d] Delete" in rendered
+    assert "[Enter] Open" in rendered
+
+    # Switch to online pane -> status bar updates
+    screen._active_pane = "online"
+    rendered_online = status_bar.render().plain
+    assert "[a] Add to Album" in rendered_online
+    assert "[Enter] Play" in rendered_online
+
+    # 2. Test action_create_album
+    screen._active_pane = "albums"
+    screen._populate_albums_table = MagicMock()
+    screen.action_create_album()
+    assert len(pushed) == 1
+    modal, cb = pushed.pop()
+    assert isinstance(modal, AlbumNameModal)
+    cb("Chill Beats")
+    mock_store.create_album.assert_called_once_with("Chill Beats")
+    mock_notify.assert_called_with(
+        "Created album 'Chill Beats'", title="Album Created", timeout=3.0, markup=False
+    )
+
+    # 3. Test action_modify_album
+    class DummyTable:
+        cursor_row = 0
+        row_count = 1
+
+        def coordinate_to_cell_key(self, coord):
+            class CellKey:
+                class RowKey:
+                    value = "album:Chill Beats"
+
+                row_key = RowKey()
+
+            return CellKey()
+
+    screen.query_one = lambda sel, cls=None: DummyTable()
+    screen.action_modify_album()
+    assert len(pushed) == 1
+    modal, cb = pushed.pop()
+    assert isinstance(modal, AlbumNameModal)
+    assert modal.initial_value == "Chill Beats"
+    cb("Lo-Fi Beats")
+    mock_store.rename_album.assert_called_once_with("Chill Beats", "Lo-Fi Beats")
+    mock_notify.assert_called_with(
+        "Renamed album 'Chill Beats' to 'Lo-Fi Beats'",
+        title="Album Renamed",
+        timeout=3.0,
+        markup=False,
+    )

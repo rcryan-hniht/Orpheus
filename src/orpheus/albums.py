@@ -6,9 +6,9 @@ from dataclasses import asdict
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Vertical
+from textual.containers import Container, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Input, Static
+from textual.widgets import Button, Input, Static
 
 from orpheus.models import Track
 from orpheus.storage import Database
@@ -409,3 +409,171 @@ class AlbumsModal(ModalScreen[str | None]):
             self._refresh_view()
         else:
             self.dismiss(None)
+
+
+class ConfirmModal(ModalScreen[bool]):
+    """Modal confirmation dialog with Yes/No choices."""
+
+    DEFAULT_CSS = """
+    ConfirmModal {
+        align: center middle;
+        background: rgba(0, 0, 0, 0.65);
+    }
+
+    #confirm-container {
+        width: 52;
+        height: auto;
+        border: solid $accent;
+        background: $surface;
+        color: $foreground;
+        padding: 1 2;
+    }
+
+    #confirm-title {
+        text-style: bold;
+        margin-bottom: 1;
+        color: $accent;
+    }
+
+    #confirm-message {
+        margin-bottom: 1;
+        color: $foreground;
+    }
+
+    #confirm-buttons {
+        height: 3;
+        align-horizontal: center;
+        margin-top: 1;
+    }
+
+    #confirm-yes, #confirm-no {
+        margin: 0 1;
+        min-width: 12;
+    }
+    """
+
+    BINDINGS = [
+        Binding("y", "confirm", "Yes", priority=True),
+        Binding("enter", "confirm", "Yes", priority=True),
+        Binding("n", "cancel", "No", priority=True),
+        Binding("escape", "cancel", "No", priority=True),
+    ]
+
+    def __init__(
+        self,
+        title: str = "Confirm Action",
+        message: str = "Are you sure you want to proceed?",
+        yes_label: str = "Yes",
+        no_label: str = "No",
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+    ) -> None:
+        super().__init__(name=name, id=id, classes=classes)
+        self.modal_title = title
+        self.message = message
+        self.yes_label = yes_label
+        self.no_label = no_label
+
+    def compose(self) -> ComposeResult:
+        with Container(id="confirm-container"):
+            with Vertical():
+                yield Static(f"── {self.modal_title.upper()} ──", id="confirm-title")
+                yield Static(self.message, id="confirm-message")
+                with Horizontal(id="confirm-buttons"):
+                    yield Button(f"[Y] {self.yes_label}", id="confirm-yes", variant="error")
+                    yield Button(f"[N] {self.no_label}", id="confirm-no", variant="default")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "confirm-yes":
+            self.dismiss(True)
+        else:
+            self.dismiss(False)
+
+    def action_confirm(self) -> None:
+        self.dismiss(True)
+
+    def action_cancel(self) -> None:
+        self.dismiss(False)
+
+
+class AlbumNameModal(ModalScreen[str | None]):
+    """Modal dialog for entering or editing an album name."""
+
+    DEFAULT_CSS = """
+    AlbumNameModal {
+        align: center middle;
+        background: rgba(0, 0, 0, 0.65);
+    }
+
+    #album-name-container {
+        width: 52;
+        height: auto;
+        border: solid $accent;
+        background: $surface;
+        color: $foreground;
+        padding: 1 2;
+    }
+
+    #album-name-title {
+        text-style: bold;
+        margin-bottom: 1;
+        color: $accent;
+    }
+
+    #album-name-input {
+        margin-bottom: 1;
+        border: solid $accent;
+        background: $panel;
+        color: $foreground;
+    }
+
+    #album-name-hints {
+        color: $text-muted;
+    }
+    """
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel", priority=True),
+    ]
+
+    def __init__(
+        self,
+        title: str = "Album Name",
+        initial_value: str = "",
+        placeholder: str = "Enter album name...",
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+    ) -> None:
+        super().__init__(name=name, id=id, classes=classes)
+        self.modal_title = title
+        self.initial_value = initial_value
+        self.placeholder = placeholder
+
+    def compose(self) -> ComposeResult:
+        with Container(id="album-name-container"):
+            with Vertical():
+                yield Static(f"── {self.modal_title.upper()} ──", id="album-name-title")
+                yield Input(
+                    value=self.initial_value,
+                    placeholder=self.placeholder,
+                    id="album-name-input",
+                )
+                yield Static("[Enter] Confirm    [Esc] Cancel", id="album-name-hints")
+
+    def on_mount(self) -> None:
+        try:
+            inp = self.query_one("#album-name-input", Input)
+            inp.focus()
+            if self.initial_value:
+                inp.cursor_position = len(self.initial_value)
+        except Exception:
+            pass
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        val = event.value.strip()
+        self.dismiss(val if val else None)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)

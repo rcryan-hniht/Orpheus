@@ -131,3 +131,99 @@ def test_albums_modal_colon_key_and_creation(tmp_path):
 
     asyncio.run(run())
     db.close()
+
+
+def test_confirm_modal_and_album_name_modal():
+    import asyncio
+
+    from textual.app import App
+    from textual.widgets import Button, Input
+
+    from orpheus.albums import AlbumNameModal, ConfirmModal
+    from orpheus.themes import get_themes
+
+    # Test 1: ConfirmModal dismissals
+    dismiss_results = []
+
+    class ConfirmApp(App):
+        def on_mount(self):
+            for t in get_themes():
+                self.register_theme(t)
+            self.theme = "oasis-starlight"
+            self.push_screen(
+                ConfirmModal(title="Delete Album", message="Are you sure?"),
+                callback=lambda res: dismiss_results.append(res),
+            )
+
+    async def run_confirm_yes():
+        app = ConfirmApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("y")
+            await pilot.pause()
+            assert dismiss_results == [True]
+
+    asyncio.run(run_confirm_yes())
+
+    dismiss_results.clear()
+
+    async def run_confirm_no():
+        app = ConfirmApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("n")
+            await pilot.pause()
+            assert dismiss_results == [False]
+
+    asyncio.run(run_confirm_no())
+
+    dismiss_results.clear()
+
+    async def run_confirm_button():
+        app = ConfirmApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            btn = app.screen.query_one("#confirm-yes", Button)
+            btn.press()
+            await pilot.pause()
+            assert dismiss_results == [True]
+
+    asyncio.run(run_confirm_button())
+
+    # Test 2: AlbumNameModal dismissals
+    input_results = []
+
+    class NameApp(App):
+        def on_mount(self):
+            for t in get_themes():
+                self.register_theme(t)
+            self.theme = "oasis-starlight"
+            self.push_screen(
+                AlbumNameModal(title="Create Album", initial_value="Synth"),
+                callback=lambda res: input_results.append(res),
+            )
+
+    async def run_name_submit():
+        app = NameApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            inp = app.screen.query_one("#album-name-input", Input)
+            assert inp.has_focus is True
+            assert inp.value == "Synth"
+            await pilot.press("w", "a", "v", "e", "enter")
+            await pilot.pause()
+            assert input_results == ["Synthwave"]
+
+    asyncio.run(run_name_submit())
+
+    input_results.clear()
+
+    async def run_name_cancel():
+        app = NameApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            await pilot.press("escape")
+            await pilot.pause()
+            assert input_results == [None]
+
+    asyncio.run(run_name_cancel())

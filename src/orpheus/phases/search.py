@@ -12,7 +12,7 @@ from textual.coordinate import Coordinate
 from textual.screen import Screen
 from textual.widgets import DataTable, Input, Static
 
-from orpheus.albums import AlbumsModal
+from orpheus.albums import AlbumNameModal, AlbumsModal, ConfirmModal
 from orpheus.models import Track
 from orpheus.resolver import (
     DeezerProvider,
@@ -42,6 +42,13 @@ class SearchStatusBar(Static):
             return self.app
         except Exception:
             return getattr(self, "_app", None)
+
+    @property
+    def safe_screen(self) -> Any:
+        try:
+            return self.screen
+        except Exception:
+            return getattr(self, "_screen", None)
 
     def _get_accent(self) -> str:
         try:
@@ -73,10 +80,27 @@ class SearchStatusBar(Static):
         ]
         if is_playing:
             items.append(("[p]", "Playing"))
+
+        screen = self.safe_screen
+
+        active_pane = getattr(screen, "_active_pane", "online")
+        if active_pane == "albums":
+            items.extend(
+                [
+                    ("[a]", "New Album"),
+                    ("[m]", "Rename"),
+                    ("[d]", "Delete"),
+                    ("[Enter]", "Open"),
+                ]
+            )
+        else:
+            items.append(("[a]", "Add to Album"))
+            if getattr(screen, "current_selected_album", None):
+                items.append(("[d]", "Remove"))
+            items.append(("[Enter]", "Play"))
+
         items.extend(
             [
-                ("[a]", "Add to Album"),
-                ("[Enter]", "Play"),
                 ("[f]", "Find"),
                 ("[S]", "Settings"),
                 ("[q]", "Quit"),
@@ -102,7 +126,8 @@ class SearchScreen(Screen):
         Binding("escape", "handle_escape", "Back/Clear", priority=True),
         Binding("tab", "switch_pane", "Switch Pane", priority=False),
         Binding("shift+tab", "switch_pane", "Switch Pane", priority=False),
-        Binding("a", "add_to_album", "Add to Album", priority=True),
+        Binding("a", "add_item", "Add / New Album", priority=False),
+        Binding("m", "modify_item", "Modify / Rename", priority=False),
         Binding("d", "delete_item", "Delete", priority=False, show=False),
         Binding("p", "now_playing", "Now Playing", priority=False, show=False),
         Binding("s", "stop", "Stop", priority=False, show=False),
@@ -281,6 +306,7 @@ class SearchScreen(Screen):
                     if target[1].cursor_row is None or target[1].cursor_row < 0:
                         if target[1].row_count > 0:
                             target[1].cursor_coordinate = Coordinate(0, 0)
+                    self._refresh_status_bar()
             elif not inp.has_focus and event.key == "tab":
                 event.prevent_default()
                 event.stop()
@@ -298,6 +324,7 @@ class SearchScreen(Screen):
                         self.action_switch_pane(reverse=True)
                     else:
                         inp.focus()
+                    self._refresh_status_bar()
             elif inp.has_focus and event.key in ("shift+tab", "backtab"):
                 panes = self._get_visible_panes()
                 if panes:
@@ -309,6 +336,7 @@ class SearchScreen(Screen):
                     if target[1].cursor_row is None or target[1].cursor_row < 0:
                         if target[1].row_count > 0:
                             target[1].cursor_coordinate = Coordinate(0, 0)
+                    self._refresh_status_bar()
         elif event.key == "right" and not inp.has_focus and self._active_pane == "albums":
             event.prevent_default()
             event.stop()
@@ -317,6 +345,7 @@ class SearchScreen(Screen):
             tbl.focus()
             if tbl.cursor_row is None and tbl.row_count > 0:
                 tbl.cursor_coordinate = Coordinate(0, 0)
+            self._refresh_status_bar()
         elif event.key == "left" and not inp.has_focus and self._active_pane == "online":
             event.prevent_default()
             event.stop()
@@ -325,15 +354,25 @@ class SearchScreen(Screen):
             tbl.focus()
             if tbl.cursor_row is None and tbl.row_count > 0:
                 tbl.cursor_coordinate = Coordinate(0, 0)
+            self._refresh_status_bar()
         elif event.key in ("f", "ctrl+f"):
             if not inp.has_focus:
                 event.prevent_default()
                 event.stop()
                 inp.focus()
+                self._refresh_status_bar()
         elif event.key == "s" and not inp.has_focus:
             event.prevent_default()
             event.stop()
             self.action_stop()
+        elif event.key == "a" and not inp.has_focus:
+            event.prevent_default()
+            event.stop()
+            self.action_add_item()
+        elif event.key == "m" and not inp.has_focus:
+            event.prevent_default()
+            event.stop()
+            self.action_modify_item()
         elif event.key == "d" and not inp.has_focus:
             event.prevent_default()
             event.stop()
@@ -504,6 +543,7 @@ class SearchScreen(Screen):
             target[1].focus()
             if target[1].cursor_row is None and target[1].row_count > 0:
                 target[1].cursor_coordinate = Coordinate(0, 0)
+            self._refresh_status_bar()
             return
 
         curr_idx = -1
@@ -529,6 +569,7 @@ class SearchScreen(Screen):
                     inp.focus()
         else:
             inp.focus()
+        self._refresh_status_bar()
 
     @property
     def safe_app(self) -> Any:
@@ -536,6 +577,13 @@ class SearchScreen(Screen):
             return self.app
         except Exception:
             return getattr(self, "_app", None)
+
+    @property
+    def safe_screen(self) -> Any:
+        try:
+            return self.screen
+        except Exception:
+            return getattr(self, "_screen", None)
 
     def action_handle_escape(self) -> None:
         try:
@@ -561,6 +609,7 @@ class SearchScreen(Screen):
             inp.cursor_position = len(inp.value)
         except Exception:
             pass
+        self._refresh_status_bar()
 
     def action_quit(self) -> None:
         app = self.safe_app
@@ -601,6 +650,153 @@ class SearchScreen(Screen):
         if app and getattr(app, "current_track", None) is not None and hasattr(app, "switch_phase"):
             app.switch_phase("now_playing")
 
+    def _refresh_status_bar(self) -> None:
+        try:
+            self.query_one(SearchStatusBar).refresh()
+        except Exception:
+            pass
+
+    def _get_highlighted_album(self) -> str | None:
+        try:
+            tbl = self.query_one("#albums-table", DataTable)
+            idx = tbl.cursor_row
+            if idx is not None and 0 <= idx < tbl.row_count:
+                row_key = tbl.coordinate_to_cell_key((idx, 0)).row_key.value
+                if row_key.startswith("album:"):
+                    return row_key[len("album:") :]
+        except Exception:
+            pass
+        return None
+
+    def action_create_album(self) -> None:
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus:
+                return
+        except Exception:
+            pass
+
+        modal = AlbumNameModal(title="Create New Album", placeholder="Enter new album name...")
+
+        def on_dismiss(name: str | None) -> None:
+            if not name:
+                return
+            store = getattr(self.safe_app, "album_store", None)
+            if not store:
+                return
+            store.create_album(name)
+            self._populate_albums_table()
+            try:
+                tbl = self.query_one("#albums-table", DataTable)
+                for r_idx in range(tbl.row_count):
+                    rk = tbl.coordinate_to_cell_key((r_idx, 0)).row_key.value
+                    if rk == f"album:{name}":
+                        tbl.cursor_coordinate = Coordinate(r_idx, 0)
+                        break
+            except Exception:
+                pass
+            try:
+                app = self.safe_app
+                if app and hasattr(app, "notify"):
+                    app.notify(
+                        f"Created album '{name}'",
+                        title="Album Created",
+                        timeout=3.0,
+                        markup=False,
+                    )
+            except Exception:
+                pass
+            self._refresh_status_bar()
+
+        app = self.safe_app
+        if app and hasattr(app, "push_screen"):
+            app.push_screen(modal, callback=on_dismiss)
+
+    def action_modify_album(self) -> None:
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus:
+                return
+        except Exception:
+            pass
+
+        alb_name = self._get_highlighted_album()
+        if not alb_name:
+            return
+
+        modal = AlbumNameModal(
+            title="Rename Album",
+            initial_value=alb_name,
+            placeholder="Enter new album name...",
+        )
+
+        def on_dismiss(new_name: str | None) -> None:
+            if not new_name or new_name == alb_name:
+                return
+            store = getattr(self.safe_app, "album_store", None)
+            if not store:
+                return
+            store.rename_album(alb_name, new_name)
+            if self.current_selected_album == alb_name:
+                self.current_selected_album = new_name
+                alb_tracks = store.get_album_tracks(new_name)
+                try:
+                    self.query_one("#online-header", Static).update(
+                        f"── ALBUM: {new_name.upper()} ({len(alb_tracks)} tracks) ──"
+                    )
+                except Exception:
+                    pass
+            self._populate_albums_table()
+            try:
+                tbl = self.query_one("#albums-table", DataTable)
+                for r_idx in range(tbl.row_count):
+                    rk = tbl.coordinate_to_cell_key((r_idx, 0)).row_key.value
+                    if rk == f"album:{new_name}":
+                        tbl.cursor_coordinate = Coordinate(r_idx, 0)
+                        break
+            except Exception:
+                pass
+            try:
+                app = self.safe_app
+                if app and hasattr(app, "notify"):
+                    app.notify(
+                        f"Renamed album '{alb_name}' to '{new_name}'",
+                        title="Album Renamed",
+                        timeout=3.0,
+                        markup=False,
+                    )
+            except Exception:
+                pass
+            self._refresh_status_bar()
+
+        app = self.safe_app
+        if app and hasattr(app, "push_screen"):
+            app.push_screen(modal, callback=on_dismiss)
+
+    def action_add_item(self) -> None:
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus:
+                return
+        except Exception:
+            pass
+
+        if self._active_pane == "albums":
+            self.action_create_album()
+        else:
+            self.action_add_to_album()
+
+    def action_modify_item(self) -> None:
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus:
+                return
+        except Exception:
+            pass
+
+        if self._active_pane == "albums":
+            self.action_modify_album()
+
     def action_delete_item(self) -> None:
         try:
             inp = self.query_one("#search-input", Input)
@@ -614,34 +810,53 @@ class SearchScreen(Screen):
         if not store:
             return
 
-        # Case 1: In #albums-table -> delete selected album
+        # Case 1: In #albums-table -> delete selected album with confirmation
         if self._active_pane == "albums" and self.albums_split:
-            try:
-                tbl = self.query_one("#albums-table", DataTable)
-                idx = tbl.cursor_row
-                if idx is not None and 0 <= idx < tbl.row_count:
-                    row_key = tbl.coordinate_to_cell_key((idx, 0)).row_key.value
-                    if row_key.startswith("album:"):
-                        alb_name = row_key[len("album:") :]
-                        store.delete_album(alb_name)
-                        if self.current_selected_album == alb_name:
-                            self.current_selected_album = None
-                            self._online_results = []
-                            self.query_one("#online-table", DataTable).clear()
-                            self.query_one("#online-header", Static).update("── SEARCH ──")
-                        self._populate_albums_table()
-                        try:
-                            if app and hasattr(app, "notify"):
-                                app.notify(
-                                    f"Deleted album '{alb_name}'",
-                                    title="Album Deleted",
-                                    timeout=3.0,
-                                    markup=False,
-                                )
-                        except Exception:
-                            pass
-            except Exception:
-                pass
+            alb_name = self._get_highlighted_album()
+            if not alb_name:
+                return
+
+            modal = ConfirmModal(
+                title="Delete Album",
+                message=(
+                    f"Are you sure you want to delete album '{alb_name}'?\n"
+                    "This action cannot be undone."
+                ),
+                yes_label="Delete",
+                no_label="Cancel",
+            )
+
+            def on_confirm_delete(confirmed: bool) -> None:
+                if not confirmed:
+                    return
+                st = getattr(self.safe_app, "album_store", None)
+                if not st:
+                    return
+                st.delete_album(alb_name)
+                if self.current_selected_album == alb_name:
+                    self.current_selected_album = None
+                    self._online_results = []
+                    try:
+                        self.query_one("#online-table", DataTable).clear()
+                        self.query_one("#online-header", Static).update("── SEARCH ──")
+                    except Exception:
+                        pass
+                self._populate_albums_table()
+                try:
+                    ap = self.safe_app
+                    if ap and hasattr(ap, "notify"):
+                        ap.notify(
+                            f"Deleted album '{alb_name}'",
+                            title="Album Deleted",
+                            timeout=3.0,
+                            markup=False,
+                        )
+                except Exception:
+                    pass
+                self._refresh_status_bar()
+
+            if app and hasattr(app, "push_screen"):
+                app.push_screen(modal, callback=on_confirm_delete)
             return
 
         # Case 2: In #online-table with an album open -> remove track from album
