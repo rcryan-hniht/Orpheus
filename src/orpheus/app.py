@@ -136,7 +136,7 @@ class OrpheusApp(App[None]):
         """Switch operational phase with cyberpunk Glitch transition."""
         def apply_screen() -> None:
             if self.is_screen_installed(phase_name):
-                self.push_screen(phase_name)
+                self.switch_screen(phase_name)
 
         try:
             overlay = GlitchOverlay(duration_seconds=0.15, on_complete=apply_screen)
@@ -186,7 +186,17 @@ class OrpheusApp(App[None]):
 
             # Auto-advance when track ended
             if state.ended and self.current_track:
-                await self.action_next()
+                track = self.current_track
+                self.current_track = None
+                if self.repeat_mode == "track":
+                    self.play_resolved_track(track)
+                elif self.queue:
+                    next_t = self.queue.pop(0)
+                    self.play_resolved_track(next_t)
+                elif self.repeat_mode == "all" and self.local_tracks:
+                    self.play_resolved_track(self.local_tracks[0])
+                else:
+                    self.home_screen.set_playing_state(False)
         except Exception:
             pass
 
@@ -324,5 +334,10 @@ class OrpheusApp(App[None]):
             await self.deezer_provider.close()
         if self.lyrics_service:
             await self.lyrics_service.close()
+        if self.separator and hasattr(self.separator, "close"):
+            await self.separator.close()
+        for p in self.providers.values():
+            if hasattr(p, "close"):
+                await p.close()
         if self.database:
             self.database.close()

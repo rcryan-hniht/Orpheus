@@ -87,6 +87,7 @@ class SearchScreen(Screen):
         self._debounce_timer: asyncio.TimerHandle | None = None
         self._online_results: list[Track] = []
         self._active_pane = "online"
+        self._search_generation = 0
 
     def compose(self) -> ComposeResult:
         with Vertical(id="search-bar-box"):
@@ -134,27 +135,44 @@ class SearchScreen(Screen):
 
     def on_input_changed(self, event: Input.Changed) -> None:
         query = event.value.strip()
+        self._search_generation += 1
+        gen = self._search_generation
         if self._debounce_timer:
             self._debounce_timer.cancel()
         loop = asyncio.get_event_loop()
         self._debounce_timer = loop.call_later(
-            0.4, lambda: asyncio.create_task(self._do_search(query))
+            0.4, lambda: asyncio.create_task(self._do_search(query, gen))
         )
 
-    async def _do_search(self, query: str) -> None:
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        table = self.query_one("#online-table", DataTable)
+        if table.row_count > 0:
+            table.focus()
+
+    async def _do_search(self, query: str, gen: int) -> None:
+        if gen != self._search_generation or not self.is_mounted:
+            return
         if not query:
-            self.query_one("#online-table", DataTable).clear()
+            try:
+                self.query_one("#online-table", DataTable).clear()
+            except Exception:
+                pass
             self._online_results = []
             return
 
         tracks = await self.deezer_provider.search(query, limit=25)
+        if gen != self._search_generation or not self.is_mounted:
+            return
         self._online_results = tracks
-        table = self.query_one("#online-table", DataTable)
-        table.clear()
-        for t in tracks:
-            dur = int(t.duration) if t.duration else 0
-            dur_str = f"{dur // 60}:{dur % 60:02d}" if t.duration else "--:--"
-            table.add_row(t.title, t.artist, t.album, dur_str, key=t.id)
+        try:
+            table = self.query_one("#online-table", DataTable)
+            table.clear()
+            for t in tracks:
+                dur = int(t.duration) if t.duration else 0
+                dur_str = f"{dur // 60}:{dur % 60:02d}" if t.duration else "--:--"
+                table.add_row(t.title, t.artist, t.album, dur_str, key=t.id)
+        except Exception:
+            pass
 
     def action_toggle_split(self) -> None:
         self.split_view = not self.split_view
@@ -165,6 +183,15 @@ class SearchScreen(Screen):
 
     def action_switch_pane(self) -> None:
         if not self.split_view:
+            try:
+                inp = self.query_one("#search-input", Input)
+                table = self.query_one("#online-table", DataTable)
+                if inp.has_focus:
+                    table.focus()
+                else:
+                    inp.focus()
+            except Exception:
+                pass
             return
         if self._active_pane == "online":
             self._active_pane = "local"

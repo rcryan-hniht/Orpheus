@@ -158,7 +158,17 @@ class AudioResolver:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=12.0)
+            try:
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=12.0)
+            except TimeoutError:
+                try:
+                    proc.kill()
+                    await proc.wait()
+                except Exception:
+                    pass
+                logger.warning("yt-dlp search process timed out")
+                return []
+
             candidates: list[dict[str, Any]] = []
             for line in stdout.decode("utf-8", errors="ignore").splitlines():
                 line = line.strip()
@@ -228,6 +238,7 @@ class AudioResolver:
             "-g",
             "--no-warnings",
             "--quiet",
+            "--",
             video_url,
         ]
         try:
@@ -236,7 +247,17 @@ class AudioResolver:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=12.0)
+            try:
+                stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=12.0)
+            except TimeoutError:
+                try:
+                    proc.kill()
+                    await proc.wait()
+                except Exception:
+                    pass
+                logger.warning("yt-dlp stream extraction timed out")
+                return ""
+
             url = stdout.decode("utf-8", errors="ignore").strip().splitlines()
             return url[0] if url else ""
         except Exception as exc:

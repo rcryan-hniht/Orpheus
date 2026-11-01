@@ -138,5 +138,9 @@ class HomeScreen(Screen):
             if hasattr(res, "__await__"):
                 await res
 
-    def action_quit(self) -> None:
+    async def action_quit(self) -> None:
+        if hasattr(self.app, "close"):
+            res = self.app.close()
+            if hasattr(res, "__await__"):
+                await res
         self.app.exit()

@@ -52,7 +52,7 @@ class AlbumStore:
             return
         with self.db.connection:
             self.db.connection.execute(
-                "UPDATE custom_albums SET name = ? WHERE name = ?", (new_name, old_name)
+                "UPDATE OR IGNORE custom_albums SET name = ? WHERE name = ?", (new_name, old_name)
             )
 
     def delete_album(self, name: str) -> None:

@@ -11,7 +11,12 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Static
 
-from orpheus.art import get_placeholder_art, render_half_blocks
+from orpheus.art import (
+    encode_kitty_graphics,
+    get_placeholder_art,
+    render_half_blocks,
+    supports_kitty_graphics,
+)
 from orpheus.lyrics import LyricLine, active_line, parse_lrc
 from orpheus.models import Lyrics, PlaybackState, Track
 
@@ -81,15 +86,21 @@ class AlbumArtWidget(Static):
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
                 resp = await client.get(url)
+                if url != self.cover_url:
+                    return
                 if resp.status_code == 200:
                     raw = resp.content
-                    self._rendered_art = render_half_blocks(raw, max_width=28, max_height=12)
+                    if supports_kitty_graphics():
+                        self._rendered_art = encode_kitty_graphics(raw)
+                    else:
+                        self._rendered_art = render_half_blocks(raw, max_width=28, max_height=12)
                     self.refresh()
                     return
         except Exception:
             pass
-        self._rendered_art = get_placeholder_art(28, 12)
-        self.refresh()
+        if url == self.cover_url:
+            self._rendered_art = get_placeholder_art(28, 12)
+            self.refresh()
 
     def render(self) -> Text:
         if not self._rendered_art:
@@ -343,34 +354,44 @@ class NowPlayingScreen(Screen):
         try:
             return self.app
         except Exception:
-            return None
+            return getattr(self, "_app", None)
 
-    def action_seek_forward(self) -> None:
+    async def action_seek_forward(self) -> None:
         delta = self.calc_seek_delta("forward")
         app = self.safe_app
         if app and hasattr(app, "action_seek"):
-            app.action_seek(delta)
+            res = app.action_seek(delta)
+            if hasattr(res, "__await__"):
+                await res
 
-    def action_seek_backward(self) -> None:
+    async def action_seek_backward(self) -> None:
         delta = self.calc_seek_delta("backward")
         app = self.safe_app
         if app and hasattr(app, "action_seek"):
-            app.action_seek(-delta)
+            res = app.action_seek(-delta)
+            if hasattr(res, "__await__"):
+                await res
 
-    def action_toggle_playback(self) -> None:
+    async def action_toggle_playback(self) -> None:
         app = self.safe_app
         if app and hasattr(app, "action_toggle_pause"):
-            app.action_toggle_pause()
+            res = app.action_toggle_pause()
+            if hasattr(res, "__await__"):
+                await res
 
-    def action_prev_track(self) -> None:
+    async def action_prev_track(self) -> None:
         app = self.safe_app
         if app and hasattr(app, "action_prev"):
-            app.action_prev()
+            res = app.action_prev()
+            if hasattr(res, "__await__"):
+                await res
 
-    def action_next_track(self) -> None:
+    async def action_next_track(self) -> None:
         app = self.safe_app
         if app and hasattr(app, "action_next"):
-            app.action_next()
+            res = app.action_next()
+            if hasattr(res, "__await__"):
+                await res
 
     def action_toggle_repeat(self) -> None:
         modes = ["off", "track", "all"]
@@ -381,11 +402,13 @@ class NowPlayingScreen(Screen):
             app.set_repeat_mode(self.repeat_mode)
         self.update_playback_state(self._playback_state)
 
-    def action_toggle_karaoke(self) -> None:
+    async def action_toggle_karaoke(self) -> None:
         self.karaoke_enabled = not self.karaoke_enabled
         app = self.safe_app
         if app and hasattr(app, "action_karaoke"):
-            app.action_karaoke()
+            res = app.action_karaoke()
+            if hasattr(res, "__await__"):
+                await res
         self.update_playback_state(self._playback_state)
 
     def action_go_home(self) -> None:

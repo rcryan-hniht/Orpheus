@@ -37,3 +37,38 @@ def test_now_playing_double_tap_seek():
     t3 = t2 + 0.5
     delta3 = screen.calc_seek_delta(direction="forward", now=t3)
     assert delta3 == 5.0
+
+
+def test_now_playing_actions_await_app_methods():
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    class FakeApp:
+        def __init__(self):
+            self.action_toggle_pause = AsyncMock()
+            self.action_seek = AsyncMock()
+            self.action_next = AsyncMock()
+            self.action_prev = AsyncMock()
+            self.action_karaoke = AsyncMock()
+
+    fake_app = FakeApp()
+    screen = NowPlayingScreen()
+    screen._app = fake_app
+
+    async def run():
+        await screen.action_toggle_playback()
+        fake_app.action_toggle_pause.assert_awaited_once()
+
+        await screen.action_seek_forward()
+        fake_app.action_seek.assert_awaited_once_with(5.0)
+
+        await screen.action_next_track()
+        fake_app.action_next.assert_awaited_once()
+
+        await screen.action_prev_track()
+        fake_app.action_prev.assert_awaited_once()
+
+        await screen.action_toggle_karaoke()
+        fake_app.action_karaoke.assert_awaited_once()
+
+    asyncio.run(run())
