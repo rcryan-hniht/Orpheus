@@ -21,4 +21,7 @@ dist/
 .agents/
 AGENTS.md
 graphify-out/cache/
+.superpowers/
+prompt.md
+
 

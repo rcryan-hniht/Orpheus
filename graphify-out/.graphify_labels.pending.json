@@ -16,5 +16,7 @@
   "14": "2026-11-01-orpheus-themes.md",
   "15": "LyricLookup",
   "16": "test_old_eof_snapshot_cannot_override_new_track_request",
-  "17": "test_stale_browser_open_does_not_replace_new_local_track"
+  "17": "Track",
+  "18": "prompt.md",
+  "19": "progress.md"
 }

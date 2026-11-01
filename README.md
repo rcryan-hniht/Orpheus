@@ -18,7 +18,7 @@ Once installed, simply launch the app from any terminal window:
 orpheus
 ```
 
-*(Requirements: Python 3.11+ and `mpv`. If `mpv` is not installed, install it with `sudo apt install mpv` on Ubuntu/Debian or `brew install mpv` on macOS).*
+*(Requirements: Python 3.11+ and `mpv`. Install `yt-dlp` for YouTube/web streaming. On Ubuntu/Debian: `sudo apt install mpv yt-dlp`, or on macOS: `brew install mpv yt-dlp`).*
 
 ---
 
@@ -32,7 +32,8 @@ orpheus
 - **🎤 Optional Karaoke Separation (Demucs)**: Generate local instrumental/vocal stems with Demucs (`k`). Preserves playback position and pause state when toggling between original and instrumental tracks.
 - **🎨 Built-in Color Themes**: Switch instantly between 5 presets (`github-dark-contrast`, `blackmetal`, `catppuccin-latte`, `sequoia-light-monochrome`, `github-light-contrast`) via in-app dropdown or `--theme` CLI flag.
 - **🔄 Automatic Background Updates**: Checks for updates quietly in the background and notifies you when an update is ready.
-- **🌐 Licensed Catalog & YouTube Search**:
+- **🌐 Web Audio & YouTube Streaming**: Native audio streaming directly inside the terminal player via `mpv` and `yt-dlp`. Paste any direct audio link, internet radio stream, or YouTube URL directly into the search bar to play immediately (`Enter`) or enqueue (`e`). Prioritizes Vietnamese and English tracks/subtitles (`--slang=vi,vie,en,eng`, `--alang=vi,vie,en,eng`).
+- **📻 Licensed Catalog & YouTube Search**:
   - Play licensed HTTPS audio catalogs via `--catalog examples/catalog.json`.
   - Search metadata via YouTube Data API v3 (`--youtube`).
 

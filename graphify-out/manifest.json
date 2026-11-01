@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "tests/test_app.py": {
-    "mtime": 1793542518.5378053,
-    "seen": 1793542601.7002966,
-    "ast_hash": "268000ee44edad2ac425137d9dc324bc",
+    "mtime": 1793545763.5035126,
+    "seen": 1793546037.4110637,
+    "ast_hash": "785ef89b74cf695058a89f3e88f03555",
     "semantic_hash": ""
   },
   "tests/test_cli.py": {
@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "tests/test_player.py": {
-    "mtime": 1793542261.9507298,
-    "seen": 1793542345.1545153,
-    "ast_hash": "8e79afc4884ef14e106859bcc0a76fe3",
+    "mtime": 1793545282.1349828,
+    "seen": 1793546037.411068,
+    "ast_hash": "c89906096bfe9258601b7899ef4eea01",
     "semantic_hash": ""
   },
   "tests/test_separation.py": {
@@ -42,9 +42,9 @@
     "semantic_hash": ""
   },
   "tests/test_sources.py": {
-    "mtime": 1793542228.736073,
-    "seen": 1793542345.1545172,
-    "ast_hash": "7683ac6dbcd95908022bffce3dec0d96",
+    "mtime": 1793545372.1977532,
+    "seen": 1793546037.4110708,
+    "ast_hash": "d3b8ae7fd88fcb6779a7a1459627d2ae",
     "semantic_hash": ""
   },
   "tests/test_storage.py": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793544279.1143239,
-    "seen": 1793544290.2735236,
-    "ast_hash": "1a313b2492e5343499c277a16f70c98f",
+    "mtime": 1793545965.6845217,
+    "seen": 1793546037.4110785,
+    "ast_hash": "72c43db9625162cadfe66d8cced32312",
     "semantic_hash": ""
   },
   "docs/verification.md": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/app.py": {
-    "mtime": 1793544101.7627947,
-    "seen": 1793544290.2734814,
-    "ast_hash": "4b9c0d1717ec63feb942187690018274",
+    "mtime": 1793545917.6365688,
+    "seen": 1793546037.4110491,
+    "ast_hash": "e00622ad42151d98c4b5fd8b5d6772c1",
     "semantic_hash": ""
   },
   "src/orpheus/lyrics.py": {
@@ -114,15 +114,15 @@
     "semantic_hash": ""
   },
   "src/orpheus/models.py": {
-    "mtime": 1793541595.1925411,
-    "seen": 1793542345.1545053,
-    "ast_hash": "acfff272c3ad82dbd558f15f53fe5f0a",
+    "mtime": 1793545384.493997,
+    "seen": 1793546037.411053,
+    "ast_hash": "2fbcee3f93ab658da478688968e1aae3",
     "semantic_hash": ""
   },
   "src/orpheus/player.py": {
-    "mtime": 1793542199.5884964,
-    "seen": 1793542345.154506,
-    "ast_hash": "80bcb41c8d86c8067e8e40c75b4429a4",
+    "mtime": 1793545307.9104824,
+    "seen": 1793546037.4110546,
+    "ast_hash": "9aa7e1427d64c0ad62f544a1d97419e3",
     "semantic_hash": ""
   },
   "src/orpheus/separation.py": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/sources.py": {
-    "mtime": 1793541595.193541,
-    "seen": 1793542345.1545084,
-    "ast_hash": "a1f60d43cf56e1875289e88650ea3e93",
+    "mtime": 1793545421.0487218,
+    "seen": 1793546037.4110575,
+    "ast_hash": "dc1d1ac94dbdb8476276476e989e87fe",
     "semantic_hash": ""
   },
   "src/orpheus/storage.py": {
@@ -165,6 +165,24 @@
     "mtime": 1793544113.3760257,
     "seen": 1793544290.273521,
     "ast_hash": "a0be727032032ae2953adf15538774b2",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-11-01-web-audio-playback/progress.md": {
+    "mtime": 1793545951.0532315,
+    "seen": 1793546037.4110765,
+    "ast_hash": "f8782e8030c2b572e3cc85f116aeea5d",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-11-01-web-audio-playback.md": {
+    "mtime": 1793545255.9114745,
+    "seen": 1793546037.4110827,
+    "ast_hash": "1918afb014bc5adf53b9d7ac31550429",
+    "semantic_hash": ""
+  },
+  "prompt.md": {
+    "mtime": 1793545934.83691,
+    "seen": 1793546037.4110868,
+    "ast_hash": "a23c50ad9536a283c91fe70f71ea4400",
     "semantic_hash": ""
   }
 }
