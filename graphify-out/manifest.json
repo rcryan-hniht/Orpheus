@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "tests/test_app.py": {
-    "mtime": 1793550247.2345355,
-    "seen": 1793550266.3136635,
-    "ast_hash": "8a737321b0bdb64a62467aa976c43a75",
+    "mtime": 1793552446.6450999,
+    "seen": 1793552521.4740562,
+    "ast_hash": "20bb9d3a28f7fb3e84c41caae98a5918",
     "semantic_hash": ""
   },
   "tests/test_cli.py": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "tests/test_themes.py": {
-    "mtime": 1793550247.2315354,
-    "seen": 1793550266.313691,
-    "ast_hash": "fcddc9eca5aa2d0d8baf00bddbbf081d",
+    "mtime": 1793552044.2319663,
+    "seen": 1793552521.47407,
+    "ast_hash": "ea2f312a59e9ac7852a3bd2ffc304424",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-11-01-orpheus-themes.md": {
@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/app.py": {
-    "mtime": 1793550974.1595373,
-    "seen": 1793551028.14549,
-    "ast_hash": "a694c3ef739a97204aec721fc823c9a9",
+    "mtime": 1793552368.9595296,
+    "seen": 1793552521.47403,
+    "ast_hash": "74c683501068d7f389af0ca4e9137a45",
     "semantic_hash": ""
   },
   "src/orpheus/lyrics.py": {
@@ -108,9 +108,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/player.py": {
-    "mtime": 1793545307.9104824,
-    "seen": 1793546037.4110546,
-    "ast_hash": "9aa7e1427d64c0ad62f544a1d97419e3",
+    "mtime": 1793552078.012649,
+    "seen": 1793552521.4740455,
+    "ast_hash": "89a7474d3f41bd5c758d7af8f2b59dd8",
     "semantic_hash": ""
   },
   "src/orpheus/separation.py": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/themes.py": {
-    "mtime": 1793541560.5888565,
-    "seen": 1793542345.15451,
-    "ast_hash": "a91815ca6c4747701a1333e5d4c3c38c",
+    "mtime": 1793552031.4867086,
+    "seen": 1793552521.4740522,
+    "ast_hash": "a47c1f1cb6d9f67e33bea1f7bc0b3165",
     "semantic_hash": ""
   },
   "install.sh": {
@@ -198,21 +198,21 @@
     "semantic_hash": ""
   },
   "src/orpheus/phases/home.py": {
-    "mtime": 1793550978.665618,
-    "seen": 1793551028.1455026,
-    "ast_hash": "2df1de73ef0550a480c0f75b719d8a4f",
+    "mtime": 1793552361.7763844,
+    "seen": 1793552521.4740422,
+    "ast_hash": "d5ae83fd7377194825567350d1ec1853",
     "semantic_hash": ""
   },
   "src/orpheus/phases/now_playing.py": {
-    "mtime": 1793550991.3498447,
-    "seen": 1793551028.1455042,
-    "ast_hash": "af7e80594f12c7ab24a7ce70bffed8e8",
+    "mtime": 1793552206.6032481,
+    "seen": 1793552521.4740434,
+    "ast_hash": "95849ec1b87a904a0b61544a21e13231",
     "semantic_hash": ""
   },
   "src/orpheus/phases/search.py": {
-    "mtime": 1793550915.4724877,
-    "seen": 1793551028.1455061,
-    "ast_hash": "c06ab8a82478f628e2b99403b01b4423",
+    "mtime": 1793552470.2435768,
+    "seen": 1793552521.4740443,
+    "ast_hash": "4f47853ae28cb9b45359948ff53a7ef6",
     "semantic_hash": ""
   },
   "src/orpheus/resolver.py": {
@@ -222,15 +222,15 @@
     "semantic_hash": ""
   },
   "src/orpheus/settings.py": {
-    "mtime": 1793549672.1402495,
-    "seen": 1793550266.3136494,
-    "ast_hash": "f7ba085fe3e210d1ff3353ecfeb3d2f4",
+    "mtime": 1793552329.6577353,
+    "seen": 1793552521.4740493,
+    "ast_hash": "0194fe6f1eaa763a1105f4578bb67415",
     "semantic_hash": ""
   },
   "src/orpheus/title.py": {
-    "mtime": 1793549569.2294087,
-    "seen": 1793550266.3136554,
-    "ast_hash": "084178d1a1438faddcebede4f2f060e9",
+    "mtime": 1793552019.5454674,
+    "seen": 1793552521.4740531,
+    "ast_hash": "d177b9d67ec50ac6dcc3e512082fc429",
     "semantic_hash": ""
   },
   "tests/test_albums.py": {
@@ -252,15 +252,15 @@
     "semantic_hash": ""
   },
   "tests/test_phase_now_playing.py": {
-    "mtime": 1793550860.3395014,
-    "seen": 1793551028.1455314,
-    "ast_hash": "effb18570e4af502cbe272791a07bc1e",
+    "mtime": 1793552475.253678,
+    "seen": 1793552521.474061,
+    "ast_hash": "b46c1af4e5d8aca6942cfbeacbf3ba83",
     "semantic_hash": ""
   },
   "tests/test_phases_home_search.py": {
-    "mtime": 1793549814.6647985,
-    "seen": 1793550266.3136735,
-    "ast_hash": "520a0c1a0660ee1efc374d8d350301c3",
+    "mtime": 1793552483.6728482,
+    "seen": 1793552521.4740617,
+    "ast_hash": "33d965e95388186ca1a9a7a1d7a190c6",
     "semantic_hash": ""
   },
   "tests/test_resolver.py": {

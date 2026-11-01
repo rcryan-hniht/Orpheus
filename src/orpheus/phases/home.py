@@ -19,7 +19,8 @@ class ShortcutBar(Static):
         width: 100%;
         height: 3;
         content-align: center middle;
-        margin-top: 2;
+        margin-top: 1;
+        background: transparent;
     }
     """
 
@@ -38,6 +39,19 @@ class ShortcutBar(Static):
     def set_playing(self, is_playing: bool) -> None:
         self.is_playing = is_playing
         self.refresh()
+
+    def _get_accent(self) -> str:
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme_accent = getattr(self.app.current_theme, "accent", None)
+                if theme_accent:
+                    return str(theme_accent)
+                theme_primary = getattr(self.app.current_theme, "primary", None)
+                if theme_primary:
+                    return str(theme_primary)
+        except Exception:
+            pass
+        return self.accent_color
 
     def get_items(self) -> list[tuple[str, str]]:
         if self.is_playing:
@@ -62,11 +76,12 @@ class ShortcutBar(Static):
 
     def render(self) -> Text:
         text = Text()
+        accent = self._get_accent()
         items = self.get_items()
         for i, (bracket, label) in enumerate(items):
-            text.append(bracket[0], style=f"bold {self.accent_color}")
-            text.append(bracket[1:-1], style=f"bold {self.accent_color}")
-            text.append(bracket[-1], style=f"bold {self.accent_color}")
+            text.append(bracket[0], style=f"bold {accent}")
+            text.append(bracket[1:-1], style=f"bold {accent}")
+            text.append(bracket[-1], style=f"bold {accent}")
             text.append(f" {label}", style="#a0a0a0")
             if i < len(items) - 1:
                 text.append("    ")
@@ -86,15 +101,25 @@ class HomeScreen(Screen):
 
     DEFAULT_CSS = """
     HomeScreen {
+        layers: base top;
         width: 100%;
         height: 100%;
-        background: #050508;
+        background: $background;
+    }
+
+    #home-matrix {
+        layer: base;
+        width: 100%;
+        height: 100%;
+        background: transparent;
     }
 
     #home-center {
+        layer: top;
         width: 100%;
         height: 100%;
-        layer: top;
+        background: transparent;
+        align: center middle;
     }
     """
 
@@ -138,9 +163,5 @@ class HomeScreen(Screen):
             if hasattr(res, "__await__"):
                 await res
 
-    async def action_quit(self) -> None:
-        if hasattr(self.app, "close"):
-            res = self.app.close()
-            if hasattr(res, "__await__"):
-                await res
+    def action_quit(self) -> None:
         self.app.exit()

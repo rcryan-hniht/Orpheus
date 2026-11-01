@@ -68,15 +68,29 @@ class SettingsView(Static):
         super().__init__()
         self.modal = modal
 
+    def _get_accent(self) -> str:
+        try:
+            if hasattr(self.modal.app, "current_theme") and self.modal.app.current_theme:
+                theme_accent = getattr(self.modal.app.current_theme, "accent", None)
+                if theme_accent:
+                    return str(theme_accent)
+                theme_primary = getattr(self.modal.app.current_theme, "primary", None)
+                if theme_primary:
+                    return str(theme_primary)
+        except Exception:
+            pass
+        return "#00ffcc"
+
     def render(self) -> Text:
         w = max(40, (self.size.width or 50) - 4)
+        accent = self._get_accent()
         text = Text()
 
         flat_index = 0
         for g_idx, group in enumerate(self.modal.groups):
             # Group header
             header = f"── {group.title} ──"
-            text.append(header.center(w) + "\n", style="bold #a0a0a0")
+            text.append(header.center(w) + "\n", style=f"bold {accent}")
 
             for item in group.items:
                 is_selected = flat_index == self.modal.current_index
@@ -86,19 +100,19 @@ class SettingsView(Static):
                     prefix = " ▶ "
                     val_display = f"◀ {val_str} ▶"
                     line_style = "bold white"
-                    accent_style = "bold #00ffcc"
+                    accent_style = f"bold {accent}"
                 else:
                     prefix = "   "
                     val_display = f"  {val_str}  "
                     line_style = "#c0c0c0"
-                    accent_style = "#00d0aa"
+                    accent_style = "#a0a0a0"
 
                 # Label on left, value on right
                 label_part = f"{prefix}{item.label}: "
                 padding = max(1, w - len(label_part) - len(val_display))
 
                 row_text = Text()
-                row_text.append(prefix, style="bold #00ffcc" if is_selected else "default")
+                row_text.append(prefix, style=f"bold {accent}" if is_selected else "default")
                 row_text.append(f"{item.label}: ", style=accent_style)
                 row_text.append(" " * padding)
                 row_text.append(val_display, style=line_style)
@@ -113,13 +127,13 @@ class SettingsView(Static):
         # Bottom hint bar
         text.append("\n")
         hints = Text()
-        hints.append("↑↓", style="bold #00ffcc")
+        hints.append("↑↓", style=f"bold {accent}")
         hints.append(" nav   ")
-        hints.append("←→", style="bold #00ffcc")
+        hints.append("←→", style=f"bold {accent}")
         hints.append(" change   ")
-        hints.append("Enter", style="bold #00ffcc")
+        hints.append("Enter", style=f"bold {accent}")
         hints.append(" save   ")
-        hints.append("Esc", style="bold #00ffcc")
+        hints.append("Esc", style=f"bold {accent}")
         hints.append(" cancel")
         text.append_text(hints)
         return text
@@ -147,8 +161,8 @@ class SettingsModal(ModalScreen[dict[str, Any] | None]):
         width: 56;
         height: auto;
         max-height: 80%;
-        border: solid #00ffcc;
-        background: #0d0d15;
+        border: solid $accent;
+        background: $surface;
         padding: 1 2;
     }
     """

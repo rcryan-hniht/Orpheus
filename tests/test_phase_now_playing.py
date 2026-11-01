@@ -1,6 +1,12 @@
 import time
+from unittest.mock import AsyncMock
 
-from orpheus.phases.now_playing import NowPlayingScreen, format_progress_bar
+from orpheus.phases.now_playing import (
+    AlbumArtWidget,
+    NowPlayingFooter,
+    NowPlayingScreen,
+    format_progress_bar,
+)
 
 
 def test_format_progress_bar():
@@ -39,9 +45,26 @@ def test_now_playing_double_tap_seek():
     assert delta3 == 5.0
 
 
+def test_now_playing_footer_render():
+    footer = NowPlayingFooter()
+    rendered = footer.render().plain
+    assert "[space]" in rendered
+    assert "Seek" in rendered
+    assert "[r]" in rendered
+    assert "[k]" in rendered
+    assert "[Esc]" in rendered
+
+
+def test_album_art_widget_render_half_blocks():
+    art = AlbumArtWidget()
+    # Default placeholder when no cover
+    rendered = art.render()
+    assert len(rendered.plain) > 0
+    assert "ORPHEUS" in rendered.plain or "CASSETTE" in rendered.plain
+
+
 def test_now_playing_actions_await_app_methods():
     import asyncio
-    from unittest.mock import AsyncMock
 
     class FakeApp:
         def __init__(self):

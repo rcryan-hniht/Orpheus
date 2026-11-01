@@ -12,15 +12,16 @@
   "10": "SearchScreen",
   "11": "orpheus",
   "12": "NowPlayingScreen",
-  "13": "test_themes.py",
+  "13": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification",
   "14": "2026-11-01-orpheus-themes.md",
   "15": "AlbumsModal",
   "16": "SettingsModal",
-  "17": "GlitchOverlay",
+  "17": "DeezerProvider",
+  "18": "SearchStatusBar",
   "19": "__main__.py",
-  "20": "MatrixRain",
+  "20": "HomeScreen",
   "21": "ShortcutBar",
-  "23": "HomeScreen",
-  "24": "AsciiTitle",
-  "26": "generate_glitch_frame"
+  "22": "._get_selected_track_and_context",
+  "23": "._get_active_table",
+  "24": "4. Phase Breakdown & Architectural Design"
 }

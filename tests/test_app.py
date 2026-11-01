@@ -153,3 +153,35 @@ def test_app_settings_modal_open_and_close(tmp_path):
         await app.close()
 
     asyncio.run(scenario())
+
+
+def test_app_playlist_load_and_queue_navigation(tmp_path):
+    async def scenario():
+        app, player, db = make_app(tmp_path)
+        with patch.object(
+            app.audio_resolver,
+            "resolve_stream_url",
+            new=AsyncMock(return_value=("/music/song.mp3", "local")),
+        ):
+            async with app.run_test():
+                # Load playlist with track 1, queue track 2
+                app.load_playlist_and_play(LOCAL, queue=[SECOND], history=[])
+                await asyncio.sleep(0.2)
+                assert app.current_track == LOCAL
+                assert app.queue == [SECOND]
+
+                # Advance to next track
+                await app.action_next()
+                await asyncio.sleep(0.2)
+                assert app.current_track == SECOND
+                assert len(app.history) >= 1
+                assert app.history[-1] == LOCAL
+
+                # Advance back to prev track (seek < 3s)
+                app.playback = PlaybackState(position=1.0, duration=180.0)
+                await app.action_prev()
+                await asyncio.sleep(0.2)
+                assert app.current_track == LOCAL
+        await app.close()
+
+    asyncio.run(scenario())

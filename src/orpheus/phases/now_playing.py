@@ -12,13 +12,13 @@ from textual.screen import Screen
 from textual.widgets import Static
 
 from orpheus.art import (
-    encode_kitty_graphics,
     get_placeholder_art,
     render_half_blocks,
-    supports_kitty_graphics,
 )
 from orpheus.lyrics import LyricLine, active_line, parse_lrc
 from orpheus.models import Lyrics, PlaybackState, Track
+
+_ART_CACHE: dict[str, str] = {}
 
 
 def format_progress_bar(position: float, duration: float, width: int = 24) -> str:
@@ -41,7 +41,7 @@ def format_progress_bar(position: float, duration: float, width: int = 24) -> st
 
 
 class AlbumArtWidget(Static):
-    """Renders album cover art using Kitty Graphics Protocol or ANSI half-block downsampling."""
+    """Renders album cover art using ANSI half-block downsampling (chafa style)."""
 
     DEFAULT_CSS = """
     AlbumArtWidget {
@@ -49,6 +49,7 @@ class AlbumArtWidget(Static):
         height: auto;
         content-align: center middle;
         margin-bottom: 1;
+        background: transparent;
     }
     """
 
@@ -78,8 +79,12 @@ class AlbumArtWidget(Static):
             self.refresh()
             return
 
+        if self.cover_url in _ART_CACHE:
+            self._rendered_art = _ART_CACHE[self.cover_url]
+            self.refresh()
+            return
+
         self._loaded_url = self.cover_url
-        # Fetch cover image in background task
         self.app.call_later(self._async_fetch_cover, self.cover_url)
 
     async def _async_fetch_cover(self, url: str) -> None:
@@ -90,10 +95,9 @@ class AlbumArtWidget(Static):
                     return
                 if resp.status_code == 200:
                     raw = resp.content
-                    if supports_kitty_graphics():
-                        self._rendered_art = encode_kitty_graphics(raw)
-                    else:
-                        self._rendered_art = render_half_blocks(raw, max_width=28, max_height=12)
+                    rendered = render_half_blocks(raw, max_width=30, max_height=14)
+                    _ART_CACHE[url] = rendered
+                    self._rendered_art = rendered
                     self.refresh()
                     return
         except Exception:
@@ -116,6 +120,7 @@ class SyncedLyricsWidget(Static):
         width: 100%;
         height: 100%;
         padding: 1 2;
+        background: transparent;
     }
     """
 
@@ -130,6 +135,19 @@ class SyncedLyricsWidget(Static):
         self.parsed_lines: list[LyricLine] = []
         self.current_position = 0.0
 
+    def _get_accent(self) -> str:
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme_accent = getattr(self.app.current_theme, "accent", None)
+                if theme_accent:
+                    return str(theme_accent)
+                theme_primary = getattr(self.app.current_theme, "primary", None)
+                if theme_primary:
+                    return str(theme_primary)
+        except Exception:
+            pass
+        return "#00ffcc"
+
     def set_lyrics(self, lyrics: Lyrics | None) -> None:
         self.lyrics = lyrics
         if lyrics and lyrics.synced:
@@ -138,14 +156,15 @@ class SyncedLyricsWidget(Static):
             self.parsed_lines = []
         self.refresh()
 
-    def set_position(self, pos: float) -> None:
-        self.current_position = pos
+    def set_position(self, seconds: float) -> None:
+        self.current_position = seconds
         self.refresh()
 
     def render(self) -> Text:
+        accent = self._get_accent()
         text = Text()
         if not self.lyrics:
-            text.append("Loading lyrics...\n", style="italic #606060")
+            text.append("Loading lyrics...\n", style="italic #505050")
             return text
 
         if not self.parsed_lines:
@@ -161,7 +180,7 @@ class SyncedLyricsWidget(Static):
 
         # Intro indicator
         if active_idx < 0:
-            text.append("• • •\n\n", style="bold #00ffcc")
+            text.append("• • •\n\n", style=f"bold {accent}")
         else:
             text.append("• • •\n\n", style="#404040")
 
@@ -173,12 +192,57 @@ class SyncedLyricsWidget(Static):
         for i in range(start_idx, end_idx):
             line = self.parsed_lines[i]
             if i == active_idx:
-                text.append(f"▶  {line.text}\n", style="bold #00ffcc on #0c1815")
+                text.append(f"▶  {line.text}\n", style=f"bold {accent} on #101020")
             elif i < active_idx:
                 text.append(f"   {line.text}\n", style="#505050")
             else:
                 text.append(f"   {line.text}\n", style="#909090")
 
+        return text
+
+
+class NowPlayingFooter(Static):
+    """Dynamic shortcut footer for Now Playing."""
+
+    DEFAULT_CSS = """
+    NowPlayingFooter {
+        height: 1;
+        width: 100%;
+        content-align: center middle;
+        margin-top: 1;
+        background: transparent;
+    }
+    """
+
+    def _get_accent(self) -> str:
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme_accent = getattr(self.app.current_theme, "accent", None)
+                if theme_accent:
+                    return str(theme_accent)
+                theme_primary = getattr(self.app.current_theme, "primary", None)
+                if theme_primary:
+                    return str(theme_primary)
+        except Exception:
+            pass
+        return "#00ffcc"
+
+    def render(self) -> Text:
+        accent = self._get_accent()
+        text = Text()
+        items = [
+            ("[space]", "Play/Pause"),
+            ("→/←", "Seek"),
+            ("Shift+→/←", "Next/Prev"),
+            ("[r]", "Repeat"),
+            ("[k]", "Karaoke"),
+            ("[Esc]", "Home"),
+        ]
+        for i, (k, desc) in enumerate(items):
+            text.append(k, style=f"bold {accent}")
+            text.append(f" {desc}", style="#808080")
+            if i < len(items) - 1:
+                text.append("    ")
         return text
 
 
@@ -200,7 +264,7 @@ class NowPlayingScreen(Screen):
     NowPlayingScreen {
         width: 100%;
         height: 100%;
-        background: #05050a;
+        background: $background;
         layout: vertical;
         padding: 1 2;
     }
@@ -213,24 +277,26 @@ class NowPlayingScreen(Screen):
     #left-col {
         width: 44;
         height: 100%;
-        border-right: solid #1a1a2e;
+        border-right: solid $panel;
         padding-right: 2;
+        background: transparent;
     }
 
     #right-col {
         width: 1fr;
         height: 100%;
         padding-left: 2;
+        background: transparent;
     }
 
     #track-title {
         text-style: bold;
-        color: #ffffff;
+        color: $foreground;
         content-align: center middle;
     }
 
     #track-artist-album {
-        color: #00ffcc;
+        color: $accent;
         content-align: center middle;
         margin-bottom: 1;
     }
@@ -239,6 +305,7 @@ class NowPlayingScreen(Screen):
         height: 1;
         width: 100%;
         content-align: center middle;
+        color: $foreground;
     }
 
     #badges-bar {
@@ -246,14 +313,7 @@ class NowPlayingScreen(Screen):
         width: 100%;
         content-align: center middle;
         margin-top: 1;
-    }
-
-    #np-footer {
-        height: 1;
-        width: 100%;
-        color: #606060;
-        content-align: center middle;
-        margin-top: 1;
+        color: $accent;
     }
     """
 
@@ -295,11 +355,7 @@ class NowPlayingScreen(Screen):
             with Vertical(id="right-col"):
                 yield SyncedLyricsWidget(id="np-lyrics")
 
-        yield Static(
-            "[space] play/pause  →/← seek  Shift+→/← next/prev  "
-            "[r] repeat  [k] karaoke  [esc] back",
-            id="np-footer",
-        )
+        yield NowPlayingFooter(id="np-footer")
 
     def update_track(self, track: Track | None, lyrics: Lyrics | None = None) -> None:
         self.current_track = track

@@ -106,7 +106,7 @@ class MpvPlayer:
         if self._disconnected:
             raise RuntimeError("mpv disconnected")
         if self._writer is None:
-            raise RuntimeError("mpv is not connected")
+            await self.start()
         self._next_id += 1
         request_id = self._next_id
         future = asyncio.get_running_loop().create_future()
@@ -161,6 +161,9 @@ class MpvPlayer:
         await self._command("stop")
 
     async def snapshot(self) -> PlaybackState:
+        if self._writer is None or self._disconnected:
+            return PlaybackState(idle=True)
+
         async def optional(name: str):
             try:
                 return await self._command("get_property", name)

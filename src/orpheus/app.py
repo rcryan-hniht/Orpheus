@@ -40,7 +40,7 @@ class OrpheusApp(App[None]):
 
     DEFAULT_CSS = """
     Screen {
-        background: #050508;
+        background: $background;
     }
     """
 
@@ -77,6 +77,7 @@ class OrpheusApp(App[None]):
         self.current_lyrics: Lyrics | None = None
         self.playback = PlaybackState()
         self.queue: list[Track] = []
+        self.history: list[Track] = []
         self.local_tracks: list[Track] = []
         self.repeat_mode = "off"
         self._generation = 0
@@ -98,8 +99,9 @@ class OrpheusApp(App[None]):
         if self.database:
             self.database.set_theme(self._initial_theme)
 
-        # Load local tracks
+        # Load local tracks and initialize mpv
         self.run_worker(self._load_local_library, exclusive=True)
+        self.run_worker(self._init_player, exclusive=False)
 
         # Screens
         self.home_screen = HomeScreen()
@@ -118,6 +120,17 @@ class OrpheusApp(App[None]):
     def watch_theme(self, old_theme: str | None, new_theme: str | None) -> None:
         if new_theme and self.database:
             self.database.set_theme(new_theme)
+        try:
+            self.screen.refresh(layout=True)
+        except Exception:
+            pass
+
+    async def _init_player(self) -> None:
+        if self.player and hasattr(self.player, "start"):
+            try:
+                await self.player.start()
+            except Exception as exc:
+                logger.warning("Could not auto-start mpv on startup: %s", exc)
 
     async def _load_local_library(self) -> None:
         if "local" in self.providers:
@@ -144,8 +157,19 @@ class OrpheusApp(App[None]):
         except Exception:
             apply_screen()
 
+    def load_playlist_and_play(
+        self, track: Track, queue: list[Track] | None = None, history: list[Track] | None = None
+    ) -> None:
+        """Load track list into queue and history, and start playing selected track."""
+        self.queue = list(queue or [])
+        self.history = list(history or [])
+        self.play_resolved_track(track)
+
     def play_resolved_track(self, track: Track) -> None:
         """Transition to Now Playing and resolve/stream audio without blocking UI."""
+        if self.current_track and self.current_track != track:
+            if not self.history or self.history[-1] != self.current_track:
+                self.history.append(self.current_track)
         self._generation += 1
         gen = self._generation
         self.current_track = track
@@ -186,14 +210,17 @@ class OrpheusApp(App[None]):
 
             # Auto-advance when track ended
             if state.ended and self.current_track:
-                track = self.current_track
+                ended_t = self.current_track
+                if not self.history or self.history[-1] != ended_t:
+                    self.history.append(ended_t)
                 self.current_track = None
                 if self.repeat_mode == "track":
-                    self.play_resolved_track(track)
+                    self.play_resolved_track(ended_t)
                 elif self.queue:
                     next_t = self.queue.pop(0)
                     self.play_resolved_track(next_t)
                 elif self.repeat_mode == "all" and self.local_tracks:
+                    self.queue = list(self.local_tracks[1:])
                     self.play_resolved_track(self.local_tracks[0])
                 else:
                     self.home_screen.set_playing_state(False)
@@ -218,17 +245,37 @@ class OrpheusApp(App[None]):
         # If seek > 3s, restart current track
         if self.playback.position > 3.0 and self.player:
             await self.player.seek(0)
-        elif self.queue:
-            # Prev track from history if available
-            pass
+            return
+        if self.history:
+            prev_track = self.history.pop()
+            if self.current_track:
+                self.queue.insert(0, self.current_track)
+            self._generation += 1
+            gen = self._generation
+            self.current_track = prev_track
+            self.now_playing_screen.update_track(prev_track, lyrics=None)
+            self.home_screen.set_playing_state(True)
+            self.switch_phase("now_playing")
+            self.run_worker(self._async_resolve_and_play(prev_track, gen), exclusive=False)
+        elif self.player:
+            await self.player.seek(0)
 
     async def action_next(self) -> None:
         if self.repeat_mode == "track" and self.current_track:
             self.play_resolved_track(self.current_track)
         elif self.queue:
+            if self.current_track:
+                self.history.append(self.current_track)
             next_t = self.queue.pop(0)
-            self.play_resolved_track(next_t)
+            self._generation += 1
+            gen = self._generation
+            self.current_track = next_t
+            self.now_playing_screen.update_track(next_t, lyrics=None)
+            self.home_screen.set_playing_state(True)
+            self.switch_phase("now_playing")
+            self.run_worker(self._async_resolve_and_play(next_t, gen), exclusive=False)
         elif self.repeat_mode == "all" and self.local_tracks:
+            self.queue = list(self.local_tracks[1:])
             self.play_resolved_track(self.local_tracks[0])
 
     def set_repeat_mode(self, mode: str) -> None:

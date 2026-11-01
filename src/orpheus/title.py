@@ -6,11 +6,12 @@ from rich.text import Text
 from textual.widget import Widget
 
 RAW_TITLE_LINES = [
-    r" ▄████▄  ██████╗ ██████╗ ██   ██ ███████╗██   ██ ███████╗",
-    r"██▒   ██ ██   ██ ██   ██ ██   ██ ██      ██   ██ ██      ",
-    r"██    ██ ██████╔ ██████╔ ███████ █████   ██   ██ ███████╗",
-    r"██░   ██ ██   ██ ██      ██   ██ ██      ██   ██      ██ ",
-    r" ▀████▀  ██   ██ ██      ██   ██ ███████╗ ▀████▀  ███████╝",
+    r" ██████╗  ██████╗  ██████╗  ██╗  ██╗ ███████╗ ██╗   ██╗ ███████╗",
+    r"██╔═══██╗ ██╔══██╗ ██╔══██╗ ██║  ██║ ██╔════╝ ██║   ██║ ██╔════╝",
+    r"██║   ██║ ██████╔╝ ██████╔╝ ███████║ █████╗   ██║   ██║ ███████╗",
+    r"██║   ██║ ██╔══██╗ ██╔═══╝  ██╔══██║ ██╔══╝   ██║   ██║ ╚════██║",
+    r"╚██████╔╝ ██║  ██║ ██║      ██║  ██║ ███████╗ ╚██████╔╝ ███████║",
+    r" ╚═════╝  ╚═╝  ╚═╝ ╚═╝      ╚═╝  ╚═╝ ╚══════╝  ╚═════╝  ╚══════╝",
 ]
 
 
@@ -21,7 +22,7 @@ def get_title_lines(
     lines: list[str] = []
     style_lower = style.lower()
 
-    for row_idx, raw_line in enumerate(RAW_TITLE_LINES):
+    for _row_idx, raw_line in enumerate(RAW_TITLE_LINES):
         out_chars: list[str] = []
         for col_idx, ch in enumerate(raw_line):
             if ch == " ":
@@ -29,19 +30,17 @@ def get_title_lines(
                 continue
 
             if style_lower == "pulse":
-                # Sweep brightness across characters horizontally
-                phase = (col_idx - frame * 1.5) % 30
+                phase = (col_idx - frame * 2) % 36
                 if phase < 6:
-                    out_chars.append("█" if ch in "█▀▄" else ch)
+                    out_chars.append("█" if ch in "█" else ch)
                 elif phase < 12:
                     out_chars.append("▓" if ch in "█" else ch)
                 else:
                     out_chars.append(ch)
             elif style_lower == "wave":
-                # Vertical wave brightness offset
                 wave_val = math.sin((col_idx * 0.3) + (frame * 0.2))
                 if wave_val > 0.4:
-                    out_chars.append("█" if ch in "█▀▄" else ch)
+                    out_chars.append("█" if ch in "█" else ch)
                 elif wave_val > -0.2:
                     out_chars.append("▒" if ch in "█" else ch)
                 else:
@@ -53,20 +52,21 @@ def get_title_lines(
 
 
 class AsciiTitle(Widget):
-    """Large 3D block-pixel ORPHEUS title with dynamic animation."""
+    """3D ORPHEUS ASCII title with dynamic theme accent and sweep animation."""
 
     DEFAULT_CSS = """
     AsciiTitle {
         width: 100%;
         height: 6;
         content-align: center middle;
+        background: transparent;
     }
     """
 
     def __init__(
         self,
         animation: str = "pulse",
-        accent_color: str = "cyan",
+        accent_color: str = "#00ffcc",
         name: str | None = None,
         id: str | None = None,
         classes: str | None = None,
@@ -85,20 +85,57 @@ class AsciiTitle(Widget):
         self._frame = (self._frame + 1) % 100
         self.refresh()
 
+    def _get_accent(self) -> str:
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme_accent = getattr(self.app.current_theme, "accent", None)
+                if theme_accent:
+                    return str(theme_accent)
+                theme_primary = getattr(self.app.current_theme, "primary", None)
+                if theme_primary:
+                    return str(theme_primary)
+        except Exception:
+            pass
+        return self.accent_color
+
     def render_frame(self, width: int = 80) -> str:
         lines = get_title_lines(self.animation, self._frame, self.accent_color)
         centered_lines = [line.center(width) for line in lines]
         return "\n".join(centered_lines)
 
     def render(self) -> Text:
-        w = max(60, self.size.width)
-        lines = get_title_lines(self.animation, self._frame, self.accent_color)
+        accent = self._get_accent()
+        style_lower = self.animation.lower()
         text = Text()
-        for i, line in enumerate(lines):
-            padding = max(0, (w - len(line)) // 2)
-            styled_line = Text(" " * padding)
-            styled_line.append(line, style=f"bold {self.accent_color}")
-            text.append_text(styled_line)
-            if i < len(lines) - 1:
+
+        for row_idx, line in enumerate(RAW_TITLE_LINES):
+            for col_idx, ch in enumerate(line):
+                if ch == " ":
+                    text.append(" ")
+                    continue
+
+                if style_lower == "pulse":
+                    phase = (col_idx - self._frame * 2) % 36
+                    if phase < 5:
+                        ch_style = "bold #ffffff"
+                    elif phase < 10:
+                        ch_style = f"bold {accent}"
+                    else:
+                        ch_style = f"{accent}"
+                elif style_lower == "wave":
+                    wave_val = math.sin((col_idx * 0.25) + (self._frame * 0.2))
+                    if wave_val > 0.4:
+                        ch_style = "bold #ffffff"
+                    elif wave_val > -0.2:
+                        ch_style = f"bold {accent}"
+                    else:
+                        ch_style = f"{accent}"
+                else:
+                    ch_style = f"bold {accent}"
+
+                text.append(ch, style=ch_style)
+
+            if row_idx < len(RAW_TITLE_LINES) - 1:
                 text.append("\n")
+
         return text

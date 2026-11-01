@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 
+from rich.text import Text
+from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
+from textual.coordinate import Coordinate
 from textual.screen import Screen
 from textual.widgets import DataTable, Input, Static
 
@@ -13,8 +16,50 @@ from orpheus.models import Track
 from orpheus.resolver import DeezerProvider
 
 
+class SearchStatusBar(Static):
+    """Bottom status bar with theme-aware accent brackets."""
+
+    DEFAULT_CSS = """
+    SearchStatusBar {
+        height: 1;
+        width: 100%;
+        margin-top: 1;
+        background: transparent;
+    }
+    """
+
+    def _get_accent(self) -> str:
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme_accent = getattr(self.app.current_theme, "accent", None)
+                if theme_accent:
+                    return str(theme_accent)
+                theme_primary = getattr(self.app.current_theme, "primary", None)
+                if theme_primary:
+                    return str(theme_primary)
+        except Exception:
+            pass
+        return "#00ffcc"
+
+    def render(self) -> Text:
+        accent = self._get_accent()
+        text = Text()
+        items = [
+            ("[Alt+l]", "Toggle Split"),
+            ("[a]", "Add to Album"),
+            ("[Enter]", "Play"),
+            ("[Esc]", "Home"),
+        ]
+        for i, (k, desc) in enumerate(items):
+            text.append(k, style=f"bold {accent}")
+            text.append(f" {desc}", style="#909090")
+            if i < len(items) - 1:
+                text.append("    ")
+        return text
+
+
 class SearchScreen(Screen):
-    """Search phase: Online Deezer search with debouncing and optional [Alt+l] local split pane."""
+    """Search phase: Online Deezer search, arrow navigation, and [Alt+l] local split pane."""
 
     BINDINGS = [
         Binding("alt+l", "toggle_split", "Split/Single", priority=True),
@@ -28,7 +73,7 @@ class SearchScreen(Screen):
     SearchScreen {
         width: 100%;
         height: 100%;
-        background: #07070c;
+        background: $background;
         layout: vertical;
         padding: 1 2;
     }
@@ -40,8 +85,9 @@ class SearchScreen(Screen):
     }
 
     #search-input {
-        border: solid #00ffcc;
-        background: #0c0c14;
+        border: solid $accent;
+        background: $surface;
+        color: $foreground;
     }
 
     #search-panes {
@@ -52,23 +98,17 @@ class SearchScreen(Screen):
     .search-pane {
         width: 1fr;
         height: 100%;
-        border: solid #1a1a2e;
+        border: solid $panel;
         padding: 0 1;
+        background: transparent;
     }
 
     .pane-header {
         height: 1;
         width: 100%;
         text-style: bold;
-        color: #00ffcc;
+        color: $accent;
         margin-bottom: 1;
-    }
-
-    #search-status {
-        height: 1;
-        width: 100%;
-        color: #707070;
-        margin-top: 1;
     }
     """
 
@@ -102,10 +142,7 @@ class SearchScreen(Screen):
                 yield Static("── LOCAL LIBRARY ──", classes="pane-header")
                 yield DataTable(id="local-table")
 
-        yield Static(
-            "[Alt+l] Toggle Local Split   [a] Add to Album   [Enter] Play   [Esc] Home",
-            id="search-status",
-        )
+        yield SearchStatusBar(id="search-status")
 
     def on_mount(self) -> None:
         # Hide local pane by default
@@ -124,6 +161,29 @@ class SearchScreen(Screen):
 
         # Focus search input initially
         self.query_one("#search-input", Input).focus()
+
+    def _get_active_table(self) -> DataTable:
+        use_local = self._active_pane == "local" and self.split_view
+        return self.query_one("#local-table" if use_local else "#online-table", DataTable)
+
+    def on_key(self, event: events.Key) -> None:
+        inp = self.query_one("#search-input", Input)
+        if event.key == "down":
+            if inp.has_focus:
+                table = self._get_active_table()
+                if table.row_count > 0:
+                    event.prevent_default()
+                    event.stop()
+                    table.focus()
+                    if table.cursor_row is None or table.cursor_row < 0:
+                        table.cursor_coordinate = Coordinate(0, 0)
+        elif event.key == "up":
+            table = self._get_active_table()
+            if table.has_focus:
+                if table.cursor_row is None or table.cursor_row <= 0:
+                    event.prevent_default()
+                    event.stop()
+                    inp.focus()
 
     def _populate_local_table(self) -> None:
         table = self.query_one("#local-table", DataTable)
@@ -145,9 +205,15 @@ class SearchScreen(Screen):
         )
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        table = self.query_one("#online-table", DataTable)
+        table = self._get_active_table()
         if table.row_count > 0:
-            table.focus()
+            track, queue, history = self._get_selected_track_and_context(row_idx=0)
+            if track and hasattr(self.app, "load_playlist_and_play"):
+                self.app.load_playlist_and_play(track, queue, history)
+            elif track and hasattr(self.app, "play_resolved_track"):
+                self.app.play_resolved_track(track)
+            else:
+                table.focus()
 
     async def _do_search(self, query: str, gen: int) -> None:
         if gen != self._search_generation or not self.is_mounted:
@@ -217,25 +283,35 @@ class SearchScreen(Screen):
             self.app.push_screen(AlbumsModal(store=store, target_track=track))
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        track = self._get_highlighted_track()
-        if track and hasattr(self.app, "play_resolved_track"):
-            self.app.play_resolved_track(track)
+        track, queue, history = self._get_selected_track_and_context()
+        if track:
+            if hasattr(self.app, "load_playlist_and_play"):
+                self.app.load_playlist_and_play(track, queue, history)
+            elif hasattr(self.app, "play_resolved_track"):
+                self.app.play_resolved_track(track)
 
-    def _get_highlighted_track(self) -> Track | None:
+    def _get_selected_track_and_context(
+        self, row_idx: int | None = None
+    ) -> tuple[Track | None, list[Track], list[Track]]:
         use_local = self._active_pane == "local" and self.split_view
         table_id = "#local-table" if use_local else "#online-table"
+        track_list = self.local_tracks if use_local else self._online_results
+
         try:
             table = self.query_one(table_id, DataTable)
-            if table.cursor_row is not None and 0 <= table.cursor_row < table.row_count:
-                row_key = table.coordinate_to_cell_key((table.cursor_row, 0)).row_key.value
-                if self._active_pane == "local" and self.split_view:
-                    for t in self.local_tracks:
-                        if t.id == row_key:
-                            return t
-                else:
-                    for t in self._online_results:
-                        if t.id == row_key:
-                            return t
+            idx = row_idx if row_idx is not None else table.cursor_row
+            if idx is not None and 0 <= idx < table.row_count:
+                row_key = table.coordinate_to_cell_key((idx, 0)).row_key.value
+                for i, t in enumerate(track_list):
+                    if t.id == row_key:
+                        selected = t
+                        queue = list(track_list[i + 1 :])
+                        history = list(track_list[:i])
+                        return selected, queue, history
         except Exception:
             pass
-        return None
+        return None, [], []
+
+    def _get_highlighted_track(self) -> Track | None:
+        track, _, _ = self._get_selected_track_and_context()
+        return track
