@@ -1,5 +1,5 @@
 {
-  "0": "asyncio",
+  "0": "CavaVisualizer",
   "1": "MpvPlayer",
   "2": "HomeScreen",
   "3": "Database",
@@ -9,7 +9,7 @@
   "7": "OrpheusApp",
   "8": "test_art.py",
   "9": "🎵 Orpheus",
-  "10": "PlaybackState",
+  "10": "updater.py",
   "11": "orpheus",
   "12": "NowPlayingScreen",
   "13": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification",
@@ -25,5 +25,9 @@
   "23": "SearchScreen",
   "24": "glitch.py",
   "25": "app.py",
-  "26": "updater.py"
+  "26": "httpx",
+  "27": "sources.py",
+  "28": "YouTubeMetadataProvider",
+  "29": "test_cli.py",
+  "30": "ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan"
 }

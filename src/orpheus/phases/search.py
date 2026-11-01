@@ -321,10 +321,13 @@ class SearchScreen(Screen):
             event.prevent_default()
             event.stop()
             self.action_delete_item()
-        elif event.key == "p" and not inp.has_focus:
-            event.prevent_default()
-            event.stop()
-            self.action_now_playing()
+        elif event.key == "p":
+            app = self.safe_app
+            has_playing_track = app is not None and getattr(app, "current_track", None) is not None
+            if has_playing_track and (not inp.has_focus or not inp.value):
+                event.prevent_default()
+                event.stop()
+                self.action_now_playing()
 
     def _populate_albums_table(self, query: str = "") -> None:
         try:
@@ -521,13 +524,21 @@ class SearchScreen(Screen):
             return getattr(self, "_app", None)
 
     def action_handle_escape(self) -> None:
-        inp = self.query_one("#search-input", Input)
-        if inp.value:
-            inp.value = ""
-        else:
-            app = self.safe_app
-            if app and hasattr(app, "switch_phase"):
-                app.switch_phase("home")
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus and inp.value:
+                inp.value = ""
+                return
+            elif inp.has_focus:
+                table = self._get_active_table()
+                table.focus()
+                return
+        except Exception:
+            pass
+
+        app = self.safe_app
+        if app and hasattr(app, "switch_phase"):
+            app.switch_phase("home")
 
     def action_focus_search(self) -> None:
         try:
@@ -566,7 +577,7 @@ class SearchScreen(Screen):
     def action_now_playing(self) -> None:
         try:
             inp = self.query_one("#search-input", Input)
-            if inp.has_focus:
+            if inp.has_focus and inp.value:
                 return
         except Exception:
             pass

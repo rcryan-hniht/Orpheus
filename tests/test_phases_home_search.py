@@ -248,7 +248,25 @@ def test_search_screen_action_now_playing():
     screen.action_now_playing()
     assert switched_to == "now_playing"
 
+    # When input has focus but empty, still switches to now_playing
+    class DummyInput:
+        has_focus = True
+        value = ""
+
+    screen.query_one = lambda sel, cls=None: DummyInput()
+    switched_to = None
+    screen._app.current_track = Track("t1", "Test", "/path")
+    screen.action_now_playing()
+    assert switched_to == "now_playing"
+
+    # When input has focus and value is typed, does not switch (preserves typing)
+    DummyInput.value = "pop"
+    switched_to = None
+    screen.action_now_playing()
+    assert switched_to is None
+
     # If current_track is None, does nothing
+    DummyInput.value = ""
     switched_to = None
     screen._app.current_track = None
     screen.action_now_playing()

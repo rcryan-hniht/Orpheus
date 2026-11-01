@@ -639,6 +639,14 @@ class NowPlayingScreen(Screen):
         self._last_tap_dir = direction
         return 10.0 if is_double else 5.0
 
+    def on_screen_resume(self) -> None:
+        try:
+            art = self.query_one("#np-album-art", AlbumArtWidget)
+            if supports_kitty_graphics() and art._raw_bytes:
+                art.set_timer(0.05, art._draw_kitty)
+        except Exception:
+            pass
+
     @property
     def safe_app(self) -> Any:
         try:
