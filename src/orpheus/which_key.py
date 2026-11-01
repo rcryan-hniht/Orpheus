@@ -84,6 +84,7 @@ class WhichKeyModal(ModalScreen[None]):
                 "GLOBAL SHORTCUTS",
                 [
                     ("?", "Open this Which Key shortcuts guide"),
+                    ("s", "Stop audio playback (works in any phase)"),
                     ("S / Alt+s", "Open Settings (Theme selection)"),
                     ("Ctrl+q / q", "Quit Orpheus"),
                 ],
@@ -97,6 +98,7 @@ class WhichKeyModal(ModalScreen[None]):
                     ("@artist <name>", "Filter search strictly by artist name"),
                     ("Enter", "Play selected track or open album"),
                     ("a", "Add highlighted track to custom Album"),
+                    ("s", "Stop playback (when navigating panes)"),
                     ("f", "Focus search input box"),
                     ("Esc", "Clear search query or return to Home"),
                 ],
@@ -105,6 +107,7 @@ class WhichKeyModal(ModalScreen[None]):
                 "NOW PLAYING PHASE",
                 [
                     ("Space", "Play / Pause playback"),
+                    ("s", "Stop playback"),
                     ("→ / ←", "Seek forward / backward 5s (10s on double-tap)"),
                     ("Shift+→ / Shift+←", "Play Next / Previous track in queue"),
                     ("r", "Cycle Repeat mode (Off → Track → All)"),

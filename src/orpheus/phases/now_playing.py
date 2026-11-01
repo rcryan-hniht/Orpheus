@@ -446,6 +446,7 @@ class NowPlayingScreen(Screen):
         Binding("question_mark", "which_key", "Which key", priority=True),
         Binding("?", "which_key", "Which key", priority=True, show=False),
         Binding("space", "toggle_playback", "Play/Pause", priority=True),
+        Binding("s", "stop", "Stop", priority=True, show=False),
         Binding("left", "seek_backward", "Seek -5s", priority=True),
         Binding("right", "seek_forward", "Seek +5s", priority=True),
         Binding("shift+left", "prev_track", "Previous", priority=True),
@@ -649,6 +650,13 @@ class NowPlayingScreen(Screen):
         app = self.safe_app
         if app and hasattr(app, "action_toggle_pause"):
             res = app.action_toggle_pause()
+            if hasattr(res, "__await__"):
+                await res
+
+    async def action_stop(self) -> None:
+        app = self.safe_app
+        if app and hasattr(app, "action_stop"):
+            res = app.action_stop()
             if hasattr(res, "__await__"):
                 await res
 

@@ -16,8 +16,9 @@ def test_shortcut_bar_render_idle():
 def test_shortcut_bar_render_playing():
     bar = ShortcutBar(is_playing=True)
     rendered = bar.render_text()
+    assert "[?]" in rendered
     assert "[p]" in rendered
-    assert "[s]" in rendered
+    assert "[s]" not in rendered  # Hidden from footer, available in which key
     assert "[S]" in rendered
     assert "[f]" in rendered
     assert "[q]" in rendered
@@ -205,3 +206,18 @@ def test_search_screen_artist_query_and_enter_submission():
             assert played_tracks[0][0] == target_track
 
     asyncio.run(run())
+
+
+def test_search_screen_action_stop():
+    screen = SearchScreen()
+    stopped = False
+
+    class DummyApp:
+        def action_stop(self):
+            nonlocal stopped
+            stopped = True
+
+    screen._app = DummyApp()
+    # When input does not have focus, action_stop calls app.action_stop
+    screen.action_stop()
+    assert stopped is True

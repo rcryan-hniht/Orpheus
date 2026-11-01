@@ -254,7 +254,15 @@ class OrpheusApp(App[None]):
     async def action_stop(self) -> None:
         if self.player:
             await self.player.stop()
+        self.playback = PlaybackState(idle=True)
         self.home_screen.set_playing_state(False)
+        try:
+            if hasattr(self.now_playing_screen, "cava_bar"):
+                self.now_playing_screen.cava_bar.set_playback(False, False)
+                self.now_playing_screen.cava_bar.reset()
+            self.now_playing_screen.update_playback_state(self.playback)
+        except Exception:
+            pass
 
     async def action_seek(self, delta: float) -> None:
         if self.player:

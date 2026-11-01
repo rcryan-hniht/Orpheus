@@ -79,6 +79,7 @@ class SearchScreen(Screen):
         Binding("tab", "switch_pane", "Switch Pane", priority=False),
         Binding("shift+tab", "switch_pane", "Switch Pane", priority=False),
         Binding("a", "add_to_album", "Add to Album", priority=True),
+        Binding("s", "stop", "Stop", priority=False, show=False),
         Binding("f", "focus_search", "Find", priority=False),
         Binding("S", "settings", "Settings", priority=False),
         Binding("alt+s", "settings", "Settings", priority=True),
@@ -277,6 +278,10 @@ class SearchScreen(Screen):
                 event.prevent_default()
                 event.stop()
                 inp.focus()
+        elif event.key == "s" and not inp.has_focus:
+            event.prevent_default()
+            event.stop()
+            self.action_stop()
 
     def _populate_albums_table(self, query: str = "") -> None:
         try:
@@ -495,6 +500,19 @@ class SearchScreen(Screen):
         app = self.safe_app
         if app and hasattr(app, "action_settings"):
             app.action_settings()
+
+    def action_stop(self) -> None:
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus:
+                return
+        except Exception:
+            pass
+        app = self.safe_app
+        if app and hasattr(app, "action_stop"):
+            res = app.action_stop()
+            if hasattr(res, "__await__"):
+                asyncio.create_task(res)
 
     def action_which_key(self) -> None:
         app = self.safe_app

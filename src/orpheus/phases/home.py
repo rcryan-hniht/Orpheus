@@ -61,7 +61,6 @@ class ShortcutBar(Static):
             return [
                 ("[?]", "Which key"),
                 ("[p]", "Playing"),
-                ("[s]", "Stop"),
                 ("[S]", "Settings"),
                 ("[f]", "Find"),
                 ("[q]", "Quit"),
@@ -102,7 +101,7 @@ class HomeScreen(Screen):
         Binding("f", "find", "Find", priority=True),
         Binding("S", "settings", "Settings", priority=True),
         Binding("p", "now_playing", "Now Playing", priority=True),
-        Binding("s", "stop", "Stop", priority=True),
+        Binding("s", "stop", "Stop", priority=True, show=False),
         Binding("q", "quit", "Quit", priority=True),
     ]
 

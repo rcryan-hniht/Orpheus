@@ -82,6 +82,22 @@ def test_now_playing_action_find_and_quit():
     assert exited is True
 
 
+def test_now_playing_action_stop():
+    import asyncio
+
+    screen = NowPlayingScreen()
+    stopped = False
+
+    class DummyApp:
+        async def action_stop(self):
+            nonlocal stopped
+            stopped = True
+
+    screen._app = DummyApp()
+    asyncio.run(screen.action_stop())
+    assert stopped is True
+
+
 def test_synced_lyrics_widget_loading_and_empty():
     from orpheus.models import Lyrics
     from orpheus.phases.now_playing import SyncedLyricsWidget
