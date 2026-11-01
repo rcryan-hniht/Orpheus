@@ -9,7 +9,7 @@
 Chỉ cần chạy lệnh sau trong terminal để tải và cài đặt tự động:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Chau-Phu-Thinh/Orpheus/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rcryan-hniht/Orpheus/main/install.sh | bash
 ```
 
 Sau khi cài đặt xong, bạn có thể mở ứng dụng ngay lập tức bằng lệnh:
@@ -80,7 +80,7 @@ YOUTUBE_API_KEY="your_api_key" orpheus --youtube
 ## 💻 Cài đặt thủ công dành cho lập trình viên
 
 ```bash
-git clone https://github.com/Chau-Phu-Thinh/Orpheus.git
+git clone https://github.com/rcryan-hniht/Orpheus.git
 cd Orpheus
 
 python3 -m venv .venv

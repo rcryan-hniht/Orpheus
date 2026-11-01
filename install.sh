@@ -2,9 +2,9 @@
 set -e
 
 # Orpheus installer script
-# Run via: curl -fsSL https://raw.githubusercontent.com/Chau-Phu-Thinh/Orpheus/main/install.sh | bash
+# Run via: curl -fsSL https://raw.githubusercontent.com/rcryan-hniht/Orpheus/main/install.sh | bash
 
-REPO_URL="https://github.com/Chau-Phu-Thinh/Orpheus.git"
+REPO_URL="https://github.com/rcryan-hniht/Orpheus.git"
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/orpheus/app"
 VENV_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/orpheus/venv"
 BIN_DIR="${HOME}/.local/bin"
