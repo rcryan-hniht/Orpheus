@@ -359,32 +359,29 @@ class CavaVisualizer(Static):
         return accent, fg, is_dark
 
     def render(self) -> Text:
-        accent, fg, is_dark = self._get_theme_styles()
+        accent, _fg, _is_dark = self._get_theme_styles()
         text = Text()
 
         if not self.is_playing:
             for _ in range(self.num_bars):
-                text.append(" ", style="dim")
+                text.append(" ", style=f"dim {accent}")
             return text
 
         if self.is_paused:
             for h in self._heights:
                 idx = min(8, int(round(h)))
-                text.append(self.BARS[idx], style="dim")
+                text.append(self.BARS[idx], style=f"dim {accent}")
             return text
 
-        peak_style = "bold #ffffff" if is_dark else f"bold {fg}"
         for h in self._heights:
             idx = min(8, int(round(h)))
             char = self.BARS[idx]
-            if idx >= 7:
-                text.append(char, style=peak_style)
-            elif idx >= 4:
+            if idx >= 6:
                 text.append(char, style=f"bold {accent}")
             elif idx >= 1:
                 text.append(char, style=f"{accent}")
             else:
-                text.append(char, style="dim")
+                text.append(char, style=f"dim {accent}")
 
         return text
 

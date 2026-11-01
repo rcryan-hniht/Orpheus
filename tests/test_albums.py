@@ -33,3 +33,54 @@ def test_album_store_crud(tmp_path):
     assert store.get_album_tracks("Synth Legends") == []
 
     db.close()
+
+
+def test_albums_modal_colon_key_and_creation(tmp_path):
+    import asyncio
+
+    from textual.app import App
+    from textual.widgets import Input
+
+    from orpheus.albums import AlbumsModal
+    from orpheus.themes import get_themes
+
+    db = Database(tmp_path / "albums_modal.sqlite")
+    store = AlbumStore(db)
+    track = Track(
+        id="t100", title="Test Track", location="https://example.com/audio", artist="Tester"
+    )
+
+    class TestApp(App):
+        def on_mount(self):
+            for t in get_themes():
+                self.register_theme(t)
+            self.theme = "oasis-starlight"
+            self.push_screen(AlbumsModal(store=store, target_track=track))
+
+    async def run():
+        app = TestApp()
+        async with app.run_test(size=(80, 24)) as pilot:
+            await pilot.pause()
+            modal = app.screen
+            assert isinstance(modal, AlbumsModal)
+
+            # Test colon key triggers create_mode
+            await pilot.press("colon")
+            await pilot.pause()
+            assert modal.mode == "create"
+            inp = modal.query_one(Input)
+            assert inp.display is True
+            assert inp.has_focus is True
+
+            # Type album name and press Enter to confirm
+            await pilot.press("V", "i", "e", "t", "N", "a", "m", "enter")
+            await pilot.pause()
+
+            # Verify album created in store and track added
+            assert "VietNam" in store.list_albums()
+            album_tracks = store.get_album_tracks("VietNam")
+            assert len(album_tracks) == 1
+            assert album_tracks[0].title == "Test Track"
+
+    asyncio.run(run())
+    db.close()

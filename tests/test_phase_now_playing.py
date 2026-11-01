@@ -189,6 +189,16 @@ def test_cava_visualizer_states():
     cava.reset()
     assert all(h == 0.0 for h in cava._heights)
 
+    # 5. Accent color only (no black/fg styling on peaks)
+    cava.set_playback(is_playing=True, is_paused=False)
+    cava._heights = [8.0] * 24
+    rendered = cava.render()
+    for span in rendered.spans:
+        style_str = str(span.style)
+        assert "00ffcc" in style_str
+        assert "0b2545" not in style_str
+        assert "black" not in style_str
+
 
 def test_now_playing_compose_includes_cava_and_no_vol():
     import asyncio

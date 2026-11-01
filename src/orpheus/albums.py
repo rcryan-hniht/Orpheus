@@ -118,38 +118,67 @@ class AlbumStore:
 class AlbumsView(Static):
     """Render list of albums for selection."""
 
+    can_focus = True
+
     def __init__(self, modal: AlbumsModal) -> None:
         super().__init__()
         self.modal = modal
 
+    def _get_theme_styles(self) -> tuple[str, str, str, str, bool]:
+        accent = "#00ffcc"
+        fg = "#ffffff"
+        panel = "#1a1a2e"
+        surface = "#0d0d15"
+        is_dark = True
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme = self.app.current_theme
+                is_dark = getattr(theme, "dark", True)
+                accent = str(getattr(theme, "accent", None) or getattr(theme, "primary", "#00ffcc"))
+                fg = str(getattr(theme, "foreground", "#ffffff" if is_dark else "#0b2545"))
+                panel = str(getattr(theme, "panel", "#1a1a2e" if is_dark else "#d2e5ed"))
+                surface = str(getattr(theme, "surface", "#0d0d15" if is_dark else "#e1eff5"))
+        except Exception:
+            pass
+        return accent, fg, panel, surface, is_dark
+
     def render(self) -> Text:
-        w = max(40, (self.size.width or 48) - 4)
+        accent, fg, panel, _surface, is_dark = self._get_theme_styles()
+        w = max(40, (self.size.width or 52) - 4)
         text = Text()
 
         header = "── My Albums ──"
-        text.append(header.center(w) + "\n\n", style="bold #00ffcc")
+        text.append(header.center(w) + "\n\n", style=f"bold {accent}")
 
         items = self.modal.get_items()
         for idx, item in enumerate(items):
             is_selected = idx == self.modal.selected_index
             prefix = " ▶ " if is_selected else "   "
-            style = "bold white on #1a1a2e" if is_selected else "#c0c0c0"
-            text.append(prefix, style="bold #00ffcc" if is_selected else "default")
+            if is_selected:
+                style = f"bold {fg} on {panel}"
+                prefix_style = f"bold {accent}"
+            else:
+                style = f"{fg}" if is_dark else "dim"
+                prefix_style = "default"
+
+            text.append(prefix, style=prefix_style)
             text.append(item, style=style)
             text.append("\n")
 
         text.append("\n")
         hints = Text()
-        hints.append("↑↓", style="bold #00ffcc")
-        hints.append(" nav   ")
-        hints.append("Enter", style="bold #00ffcc")
-        hints.append(" choose   ")
-        hints.append("[m]", style="bold #00ffcc")
-        hints.append(" modify   ")
-        hints.append("[d]", style="bold #00ffcc")
-        hints.append(" delete   ")
-        hints.append("Esc", style="bold #00ffcc")
-        hints.append(" cancel")
+        hints.append("↑↓", style=f"bold {accent}")
+        hints.append(" Nav  ")
+        hints.append("Enter", style=f"bold {accent}")
+        hints.append(" Choose  ")
+        hints.append("[:]", style=f"bold {accent}")
+        hints.append(" New  ")
+        hints.append("[m]", style=f"bold {accent}")
+        hints.append(" Rename  ")
+        hints.append("[d]", style=f"bold {accent}")
+        hints.append(" Del  ")
+        hints.append("Esc", style=f"bold {accent}")
+        hints.append(" Cancel")
         text.append_text(hints)
         return text
 
@@ -161,6 +190,8 @@ class AlbumsModal(ModalScreen[str | None]):
         Binding("up", "prev_item", "Up", show=False),
         Binding("down", "next_item", "Down", show=False),
         Binding("enter", "select_item", "Select", show=False),
+        Binding("colon", "create_mode", "New Album", show=False),
+        Binding("c", "create_mode", "New Album", show=False),
         Binding("m", "modify_item", "Modify", show=False),
         Binding("d", "delete_item", "Delete", show=False),
         Binding("escape", "cancel", "Cancel", show=False),
@@ -169,21 +200,23 @@ class AlbumsModal(ModalScreen[str | None]):
     DEFAULT_CSS = """
     AlbumsModal {
         align: center middle;
-        background: rgba(0, 0, 0, 0.75);
+        background: rgba(0, 0, 0, 0.65);
     }
 
     #albums-container {
-        width: 52;
+        width: 58;
         height: auto;
-        border: solid #00ffcc;
-        background: #0d0d15;
+        border: solid $accent;
+        background: $surface;
+        color: $foreground;
         padding: 1 2;
     }
 
     #album-input {
         margin-top: 1;
-        border: solid #00ffcc;
-        background: #05050a;
+        border: solid $accent;
+        background: $panel;
+        color: $foreground;
     }
     """
 
@@ -213,6 +246,12 @@ class AlbumsModal(ModalScreen[str | None]):
                 input_w.display = False
                 yield input_w
 
+    def on_mount(self) -> None:
+        try:
+            self.query_one(AlbumsView).focus()
+        except Exception:
+            pass
+
     def _refresh_view(self) -> None:
         try:
             self.query_one(AlbumsView).refresh()
@@ -235,6 +274,14 @@ class AlbumsModal(ModalScreen[str | None]):
             self.selected_index = (self.selected_index - 1) % total
             self._refresh_view()
 
+    def action_create_mode(self) -> None:
+        self.mode = "create"
+        inp = self.query_one(Input)
+        inp.value = ""
+        inp.placeholder = "Enter new album name..."
+        inp.display = True
+        inp.focus()
+
     def action_select_item(self) -> None:
         items = self.get_items()
         if not (0 <= self.selected_index < len(items)):
@@ -242,12 +289,7 @@ class AlbumsModal(ModalScreen[str | None]):
 
         choice = items[self.selected_index]
         if choice == "[+ New Album]":
-            self.mode = "create"
-            inp = self.query_one(Input)
-            inp.value = ""
-            inp.placeholder = "Enter new album name..."
-            inp.display = True
-            inp.focus()
+            self.action_create_mode()
         else:
             # Picked existing album
             if self.target_track:
@@ -269,6 +311,10 @@ class AlbumsModal(ModalScreen[str | None]):
                 self.mode = "list"
                 inp = self.query_one(Input)
                 inp.display = False
+                try:
+                    self.query_one(AlbumsView).focus()
+                except Exception:
+                    pass
                 self._refresh_view()
 
     def action_modify_item(self) -> None:
@@ -294,6 +340,7 @@ class AlbumsModal(ModalScreen[str | None]):
             try:
                 inp = self.query_one(Input)
                 inp.display = False
+                self.query_one(AlbumsView).focus()
             except Exception:
                 pass
             self._refresh_view()
