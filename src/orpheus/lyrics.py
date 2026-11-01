@@ -166,71 +166,77 @@ class LyricsService:
         """Search and retrieve matched song lyrics from https://lyrics.lyricfind.com/."""
         if not self.lyricfind_client or not track.title:
             return None
-        query = f"{track.title} {track.artist}".strip()
-        params = {
+
+        title_clean = clean_song_title(track.title) or track.title
+        search_queries: list[dict[str, str]] = [{"all": title_clean}]
+        if track.artist:
+            search_queries.append({"track": title_clean, "artist": track.artist})
+        search_queries.append({"track": title_clean})
+        if track.title != title_clean:
+            search_queries.append({"all": track.title})
+
+        ua = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        )
+        base_params = {
             "reqtype": "default",
             "territory": "US",
             "searchtype": "track",
-            "all": query,
-            "alltracks": "no",
             "output": "json",
-            "useragent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+            "useragent": ua,
         }
+
         try:
-            resp = await self.lyricfind_client.get(
-                "https://lyrics.lyricfind.com/api/v1/search", params=params
-            )
-            if resp.status_code != 200:
-                return None
-            data = resp.json()
-            tracks = data.get("tracks", [])
-            matched_candidate = None
-            for cand in tracks:
-                c_title = cand.get("title", "")
-                c_artist = cand.get("artist", {}).get("name", "")
-                if match_lyric_track(track.title, track.artist, c_title, c_artist):
-                    matched_candidate = cand
-                    break
-
-            if not matched_candidate:
-                return None
-
-            plain_lyrics = matched_candidate.get("lyrics") or ""
-            slug = matched_candidate.get("slug")
-            if not plain_lyrics and slug:
-                try:
-                    page_resp = await self.lyricfind_client.get(
-                        f"https://lyrics.lyricfind.com/lyrics/{slug}",
-                        follow_redirects=True,
-                    )
-                    if page_resp.status_code == 200:
-                        from bs4 import BeautifulSoup
-
-                        soup = BeautifulSoup(page_resp.text, "html.parser")
-                        tag = soup.find("script", id="__NEXT_DATA__")
-                        if tag and tag.string:
-                            next_data = json.loads(tag.string)
-                            plain_lyrics = (
-                                next_data.get("props", {})
-                                .get("pageProps", {})
-                                .get("songData", {})
-                                .get("track", {})
-                                .get("lyrics", "")
-                            )
-                except Exception:
-                    pass
-
-            if not plain_lyrics:
-                snippet = matched_candidate.get("snippet", "")
-                if snippet:
-                    plain_lyrics = snippet.strip()
-
-            if plain_lyrics:
-                return Lyrics(
-                    plain=plain_lyrics,
-                    synced="",
-                    instrumental=bool(matched_candidate.get("instrumental", False)),
+            for q in search_queries:
+                params = {**base_params, **q}
+                resp = await self.lyricfind_client.get(
+                    "https://lyrics.lyricfind.com/api/v1/search", params=params
                 )
+                if resp.status_code != 200:
+                    continue
+                try:
+                    data = resp.json()
+                except Exception:
+                    continue
+
+                tracks = data.get("tracks", [])
+                if not isinstance(tracks, list):
+                    continue
+
+                for cand in tracks:
+                    if not isinstance(cand, dict):
+                        continue
+                    c_title = cand.get("title", "")
+                    c_artist = cand.get("artist", {}).get("name", "")
+                    c_artists = [
+                        a.get("name", "") for a in cand.get("artists", []) if isinstance(a, dict)
+                    ]
+                    matches = match_lyric_track(
+                        title_clean, track.artist, c_title, c_artist
+                    ) or any(
+                        match_lyric_track(title_clean, track.artist, c_title, a_name)
+                        for a_name in c_artists
+                    )
+                    if not matches and track.title != title_clean:
+                        matches = match_lyric_track(track.title, track.artist, c_title, c_artist)
+
+                    if matches:
+                        raw_context = cand.get("context") or ""
+                        plain_lyrics = ""
+                        if raw_context:
+                            plain_lyrics = re.sub(r"</?em>", "", raw_context).strip()
+                        if not plain_lyrics:
+                            plain_lyrics = (cand.get("lyrics") or "").strip()
+                        if not plain_lyrics:
+                            plain_lyrics = (cand.get("snippet") or "").strip()
+
+                        if plain_lyrics:
+                            return Lyrics(
+                                plain=plain_lyrics,
+                                synced="",
+                                instrumental=bool(cand.get("instrumental", False)),
+                            )
             return None
         except Exception:
             return None

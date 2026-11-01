@@ -38,8 +38,11 @@ class OrpheusApp(App[None]):
     ]
 
     DEFAULT_CSS = """
+    App {
+        background: ansi_default;
+    }
     Screen {
-        background: $background;
+        background: ansi_default;
         overflow: hidden;
     }
     """
@@ -115,45 +118,11 @@ class OrpheusApp(App[None]):
         self.install_screen(self.now_playing_screen, name="now_playing")
 
         self.push_screen("home")
-        self._sync_terminal_background()
         self._poll_timer = self.set_interval(0.5, self.poll_player)
-
-    def _sync_terminal_background(self) -> None:
-        """Set terminal emulator background color to match active theme via OSC 11."""
-        try:
-            if hasattr(self, "current_theme") and self.current_theme:
-                bg = getattr(self.current_theme, "background", None)
-                if bg:
-                    hex_color = str(bg)
-                    seq = f"\033]11;{hex_color}\007"
-                    if hasattr(self, "_driver") and hasattr(self._driver, "write"):
-                        self._driver.write(seq)
-                    else:
-                        import sys
-
-                        sys.stdout.write(seq)
-                        sys.stdout.flush()
-        except Exception:
-            pass
-
-    def _reset_terminal_background(self) -> None:
-        """Reset terminal emulator background color via OSC 111 on exit."""
-        try:
-            seq = "\033]111\007"
-            if hasattr(self, "_driver") and hasattr(self._driver, "write"):
-                self._driver.write(seq)
-            else:
-                import sys
-
-                sys.stdout.write(seq)
-                sys.stdout.flush()
-        except Exception:
-            pass
 
     def watch_theme(self, old_theme: str | None, new_theme: str | None) -> None:
         if new_theme and self.database:
             self.database.set_theme(new_theme)
-        self._sync_terminal_background()
         try:
             self.screen.refresh(layout=True)
         except Exception:
@@ -410,7 +379,6 @@ class OrpheusApp(App[None]):
         self.switch_phase("search")
 
     async def close(self) -> None:
-        self._reset_terminal_background()
         if self._poll_timer:
             self._poll_timer.stop()
         if self.player:

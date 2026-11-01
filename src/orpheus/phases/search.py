@@ -82,7 +82,7 @@ class SearchScreen(Screen):
     SearchScreen {
         width: 100%;
         height: 100%;
-        background: $background;
+        background: ansi_default;
         layout: vertical;
         padding: 1 2;
         overflow: hidden;

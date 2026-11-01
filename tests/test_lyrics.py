@@ -346,6 +346,43 @@ def test_fetch_lyricfind_rejects_unmatched_song(tmp_path):
     asyncio.run(run())
 
 
+def test_fetch_lyricfind_extracts_full_context_lyrics(tmp_path):
+    import asyncio
+
+    def reply_lf(request):
+        return httpx.Response(
+            200,
+            json={
+                "tracks": [
+                    {
+                        "title": "Thương Nhau Đến Thế [ZoneH Remix]",
+                        "artist": {"name": "Gia Huy, Meme Media and ZZ"},
+                        "artists": [
+                            {"name": "Gia Huy", "is_primary": True},
+                            {"name": "Meme Media", "is_primary": False},
+                        ],
+                        "context": "<em>Yêu</em> một người thật khó\nThương nhau đến thế",
+                        "snippet": "Yêu một người...",
+                    }
+                ]
+            },
+        )
+
+    async def run():
+        db = Database(tmp_path / "music.sqlite")
+        lf_client = httpx.AsyncClient(transport=httpx.MockTransport(reply_lf))
+        service = LyricsService(db, lyricfind_client=lf_client)
+        track = Track("lf-3", "Thương Nhau Đến Thế", "/song.mp3", artist="Gia Huy")
+        res = await service.fetch_lyricfind(track)
+        assert res is not None
+        assert "Yêu một người thật khó" in res.plain
+        assert "<em>" not in res.plain
+        await service.close()
+        db.close()
+
+    asyncio.run(run())
+
+
 def test_clean_song_title():
     from orpheus.lyrics import clean_song_title
 

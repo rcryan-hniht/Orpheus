@@ -107,7 +107,7 @@ class HomeScreen(Screen):
         layers: base top;
         width: 100%;
         height: 100%;
-        background: $background;
+        background: ansi_default;
         overflow: hidden;
     }
 
