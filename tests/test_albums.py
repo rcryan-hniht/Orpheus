@@ -59,7 +59,13 @@ def test_albums_modal_colon_key_and_creation(tmp_path):
         id="t100", title="Test Track", location="https://example.com/audio", artist="Tester"
     )
 
+    notifications = []
+
     class TestApp(App):
+        def notify(self, message, **kwargs):
+            notifications.append((message, kwargs))
+            super().notify(message, **kwargs)
+
         def on_mount(self):
             for t in get_themes():
                 self.register_theme(t)
@@ -90,6 +96,7 @@ def test_albums_modal_colon_key_and_creation(tmp_path):
             album_tracks = store.get_album_tracks("VietNam")
             assert len(album_tracks) == 1
             assert album_tracks[0].title == "Test Track"
+            assert any("VietNam" in msg and "Test Track" in msg for msg, _ in notifications)
 
     asyncio.run(run())
     db.close()

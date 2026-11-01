@@ -321,6 +321,15 @@ class AlbumsModal(ModalScreen[str | None]):
             # Picked existing album
             if self.target_track:
                 self.store.add_track(choice, self.target_track)
+                try:
+                    self.app.notify(
+                        f"Added '{self.target_track.title}' to '{choice}'",
+                        title="Album Updated",
+                        timeout=3.0,
+                        markup=False,
+                    )
+                except Exception:
+                    pass
             self.dismiss(choice)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -330,6 +339,15 @@ class AlbumsModal(ModalScreen[str | None]):
                 self.store.create_album(text)
                 if self.target_track:
                     self.store.add_track(text, self.target_track)
+                    try:
+                        self.app.notify(
+                            f"Added '{self.target_track.title}' to '{text}'",
+                            title="Album Created",
+                            timeout=3.0,
+                            markup=False,
+                        )
+                    except Exception:
+                        pass
                 self.dismiss(text)
             elif self.mode == "rename":
                 items = self.get_items()
@@ -360,6 +378,15 @@ class AlbumsModal(ModalScreen[str | None]):
             self.store.delete_album(album_to_del)
             self.selected_index = max(0, self.selected_index - 1)
             self._refresh_view()
+            try:
+                self.app.notify(
+                    f"Deleted album '{album_to_del}'",
+                    title="Album Deleted",
+                    timeout=3.0,
+                    markup=False,
+                )
+            except Exception:
+                pass
 
     def action_cancel(self) -> None:
         if self.mode != "list":

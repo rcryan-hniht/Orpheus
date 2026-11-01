@@ -605,6 +605,16 @@ class SearchScreen(Screen):
                                 "── ONLINE SEARCH (DEEZER) ──"
                             )
                         self._populate_albums_table()
+                        try:
+                            if app and hasattr(app, "notify"):
+                                app.notify(
+                                    f"Deleted album '{alb_name}'",
+                                    title="Album Deleted",
+                                    timeout=3.0,
+                                    markup=False,
+                                )
+                        except Exception:
+                            pass
             except Exception:
                 pass
             return
@@ -616,6 +626,10 @@ class SearchScreen(Screen):
                 idx = tbl.cursor_row
                 if idx is not None and 0 <= idx < tbl.row_count:
                     row_key = tbl.coordinate_to_cell_key((idx, 0)).row_key.value
+                    track_to_remove = next(
+                        (t for t in self._online_results if t.id == row_key), None
+                    )
+                    track_name = track_to_remove.title if track_to_remove else row_key
                     store.remove_track(self.current_selected_album, row_key)
                     if app and hasattr(app, "queue"):
                         app.queue = [t for t in app.queue if t.id != row_key]
@@ -633,6 +647,17 @@ class SearchScreen(Screen):
                         new_idx = min(idx, len(updated) - 1)
                         tbl.cursor_coordinate = Coordinate(new_idx, 0)
                     self._populate_albums_table()
+                    alb_target = self.current_selected_album
+                    try:
+                        if app and hasattr(app, "notify"):
+                            app.notify(
+                                f"Removed '{track_name}' from album '{alb_target}'",
+                                title="Album Updated",
+                                timeout=3.0,
+                                markup=False,
+                            )
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
@@ -644,9 +669,19 @@ class SearchScreen(Screen):
         track = self._get_highlighted_track()
         if not track:
             return
-        store = getattr(self.app, "album_store", None)
+        store = getattr(self.safe_app, "album_store", None)
         if store:
-            self.app.push_screen(AlbumsModal(store=store, target_track=track))
+
+            def on_dismiss(album_name: str | None) -> None:
+                if self.albums_split:
+                    self._populate_albums_table()
+
+            app = self.safe_app
+            if app and hasattr(app, "push_screen"):
+                app.push_screen(
+                    AlbumsModal(store=store, target_track=track),
+                    callback=on_dismiss,
+                )
 
     def _select_and_open_album(self, album_name: str, play_immediately: bool = False) -> None:
         self.current_selected_album = album_name

@@ -1,17 +1,17 @@
 # Graph Report - Orpheus  (2026-11-02)
 
 ## Corpus Check
-- 49 files · ~30,532 words
+- 49 files · ~30,727 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 1 file(s) not represented in the graph (top: (none) 1)
 
 ## Summary
-- 778 nodes · 1853 edges · 33 communities (23 shown, 10 thin omitted)
-- Extraction: 79% EXTRACTED · 21% INFERRED · 0% AMBIGUOUS · INFERRED: 395 edges (avg confidence: 0.9)
+- 780 nodes · 1858 edges · 27 communities (23 shown, 4 thin omitted)
+- Extraction: 79% EXTRACTED · 21% INFERRED · 0% AMBIGUOUS · INFERRED: 396 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b555bde5`
+- Built from commit: `6547fb9f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -26,13 +26,14 @@
 - OrpheusApp
 - test_art.py
 - 🎵 Orpheus
-- test_search_screen_artist_query_and_enter_submission
+- PlaybackState
 - orpheus
 - NowPlayingScreen
 - ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification
 - 2026-11-01-orpheus-themes.md
 - AlbumsModal
 - SettingsModal
+- test_visuals.py
 - ShortcutBar
 - __main__.py
 - MatrixRain
@@ -42,12 +43,6 @@
 - glitch.py
 - app.py
 - updater.py
-- SearchStatusBar
-- ._get_selected_track_and_context
-- test_phases_home_search.py
-- ._do_search
-- test_search_screen_action_delete_item_album_and_track
-- ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan
 
 ## God Nodes (most connected - your core abstractions)
 1. `Track` - 104 edges
@@ -62,6 +57,8 @@
 10. `HomeScreen` - 23 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `Task 5: Reusable Settings Modal Component` --references--> `SettingsModal`  [INFERRED]
+  docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md → src/orpheus/settings.py
 - `Task 7: Phase 1 (Home Screen) & Phase 2 (Search Screen with Deezer + Local Split)` --references--> `AlbumsModal`  [INFERRED]
   docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md → src/orpheus/albums.py
 - `Task 9: App Controller Phase Orchestration & E2E System Tests` --references--> `OrpheusApp`  [INFERRED]
@@ -70,33 +67,31 @@
   docs/superpowers/plans/2026-11-01-web-audio-playback.md → src/orpheus/app.py
 - `Task 4: Glitch Transition Widget & Phase Transition Engine` --references--> `GlitchOverlay`  [INFERRED]
   docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md → src/orpheus/glitch.py
-- `Task 8: Phase 3 (Now Playing Screen) & Player Controls Integration` --references--> `LyricsService`  [INFERRED]
-  docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md → src/orpheus/lyrics.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (33 total, 10 thin omitted)
+## Communities (27 total, 4 thin omitted)
 
 ### Community 0 - "asyncio"
-Cohesion: 0.15
-Nodes (17): Separator, Stems, test_missing_separator_dependency_is_actionable(), run(), test_separator_caches_only_complete_outputs(), run(), test_separator_does_not_cache_partial_output(), run() (+9 more)
+Cohesion: 0.26
+Nodes (9): Separator, test_missing_separator_dependency_is_actionable(), run(), test_separator_caches_only_complete_outputs(), run(), test_separator_does_not_cache_partial_output(), run(), test_separator_requires_local_track_and_rights() (+1 more)
 
 ### Community 1 - "MpvPlayer"
 Cohesion: 0.09
 Nodes (27): Global Constraints, Review Focus, Task 1: Update MpvPlayer options and timeout for yt-dlp streaming, Task 2: Update Track.playable and add Web Track Creation helper, Task 3: Integrate Web & YouTube playback and direct URL search in OrpheusApp, Task 4: Documentation, Verification, and Push, Web Audio Playback Implementation Plan, MpvPlayer (+19 more)
 
 ### Community 2 - "HomeScreen"
-Cohesion: 0.12
-Nodes (5): HomeScreen, get_themes(), test_presets_have_requested_names_and_modes(), test_home_screen_shortcuts_docked_at_bottom(), on_mount()
+Cohesion: 0.10
+Nodes (7): Global Constraints, ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan, HomeScreen, get_themes(), test_presets_have_requested_names_and_modes(), test_home_screen_shortcuts_docked_at_bottom(), on_mount()
 
 ### Community 3 - "Database"
-Cohesion: 0.10
-Nodes (39): clean_song_title(), LyricsService, match_lyric_track(), Lyrics, LyricsMatch, Track, Database, test_clean_song_title() (+31 more)
+Cohesion: 0.08
+Nodes (45): clean_song_title(), LyricsService, Lyrics, LyricsMatch, Track, Database, Stems, test_clean_song_title() (+37 more)
 
 ### Community 4 - "resolver.py"
-Cohesion: 0.06
-Nodes (26): normalize_lyric_match_text(), artist_name_matches(), AudioResolver, DeezerProvider, _extract_base_title(), _fold_ascii(), normalize_artist(), _normalize_for_match() (+18 more)
+Cohesion: 0.09
+Nodes (15): AudioResolver, DeezerProvider, test_audio_resolver_fallback_to_jamendo_when_yt_fails(), run(), test_audio_resolver_prioritizes_artist_title_queries(), run(), test_audio_resolver_selects_closest_duration(), run() (+7 more)
 
 ### Community 7 - "OrpheusApp"
 Cohesion: 0.09
@@ -110,6 +105,10 @@ Nodes (18): compute_kitty_dimensions(), encode_kitty_graphics(), get_kitty_delet
 Cohesion: 0.22
 Nodes (8): 🛠️ CLI Options, Examples, ✨ Features, ⌨️ Keyboard Shortcuts, 📄 License & Contribution, 💻 Manual Installation (for Developers), 🎵 Orpheus, ⚡ Quick Install (One-Line Command)
 
+### Community 10 - "PlaybackState"
+Cohesion: 0.10
+Nodes (15): PlaybackState, make_app(), MockLyricsService, MockPlayer, MockProvider, test_app_initial_phase_is_home(), scenario(), test_app_play_track_transitions_to_now_playing() (+7 more)
+
 ### Community 12 - "NowPlayingScreen"
 Cohesion: 0.05
 Nodes (17): CavaVisualizer, format_progress_bar(), NowPlayingFooter, NowPlayingScreen, SyncedLyricsWidget, test_cava_visualizer_states(), test_format_progress_bar(), test_now_playing_action_find_and_quit() (+9 more)
@@ -120,14 +119,18 @@ Nodes (13): 1. Intent & Context, 2. Goals, Non-Goals & Anti-Goals, 3. Global Con
 
 ### Community 15 - "AlbumsModal"
 Cohesion: 0.08
-Nodes (7): Task 6: User Albums / Playlists Store & Modal, AlbumsModal, AlbumStore, AlbumsView, test_album_store_crud(), test_albums_modal_colon_key_and_creation(), on_mount()
+Nodes (8): Task 6: User Albums / Playlists Store & Modal, AlbumsModal, AlbumStore, AlbumsView, test_album_store_crud(), test_albums_modal_colon_key_and_creation(), notify(), on_mount()
 
 ### Community 16 - "SettingsModal"
 Cohesion: 0.10
-Nodes (6): Task 5: Reusable Settings Modal Component, SettingItem, SettingsModal, SettingsView, test_setting_item_change_value(), test_settings_modal_navigation()
+Nodes (5): SettingItem, SettingsModal, SettingsView, test_setting_item_change_value(), test_settings_modal_navigation()
+
+### Community 17 - "test_visuals.py"
+Cohesion: 0.27
+Nodes (3): get_title_lines(), test_ascii_title_render(), test_get_title_lines()
 
 ### Community 18 - "ShortcutBar"
-Cohesion: 0.20
+Cohesion: 0.24
 Nodes (3): ShortcutBar, test_shortcut_bar_render_idle(), test_shortcut_bar_render_playing()
 
 ### Community 19 - "__main__.py"
@@ -136,59 +139,51 @@ Nodes (15): main(), create_web_track(), LicensedCatalogProvider, LocalProvider, 
 
 ### Community 20 - "MatrixRain"
 Cohesion: 0.20
-Nodes (4): Task 3: Matrix Rain Widget & ASCII Title Engine, MatrixColumn, MatrixRain, test_matrix_rain_step()
+Nodes (4): Task 7: Phase 1 (Home Screen) & Phase 2 (Search Screen with Deezer + Local Split), MatrixColumn, MatrixRain, test_matrix_rain_step()
 
 ### Community 21 - "GlitchOverlay"
-Cohesion: 0.17
-Nodes (9): Review Focus, Task 1: Terminal Graphics Protocol Detection & Half-Block Art Engine, Task 2: Deezer Metadata Provider & YouTube yt-dlp Audio Resolver, Task 4: Glitch Transition Widget & Phase Transition Engine, Task 7: Phase 1 (Home Screen) & Phase 2 (Search Screen with Deezer + Local Split), Task 8: Phase 3 (Now Playing Screen) & Player Controls Integration, Task 9: App Controller Phase Orchestration & E2E System Tests, GlitchOverlay (+1 more)
+Cohesion: 0.15
+Nodes (10): Review Focus, Task 1: Terminal Graphics Protocol Detection & Half-Block Art Engine, Task 2: Deezer Metadata Provider & YouTube yt-dlp Audio Resolver, Task 3: Matrix Rain Widget & ASCII Title Engine, Task 4: Glitch Transition Widget & Phase Transition Engine, Task 5: Reusable Settings Modal Component, Task 8: Phase 3 (Now Playing Screen) & Player Controls Integration, Task 9: App Controller Phase Orchestration & E2E System Tests (+2 more)
 
 ### Community 22 - "AsciiTitle"
-Cohesion: 0.19
-Nodes (5): AsciiTitle, test_ascii_title_pulse_renders_highlight_and_accent(), on_mount(), run(), test_ascii_title_render()
+Cohesion: 0.18
+Nodes (4): AsciiTitle, test_ascii_title_pulse_renders_highlight_and_accent(), on_mount(), run()
 
 ### Community 23 - "SearchScreen"
-Cohesion: 0.18
-Nodes (3): SearchScreen, test_search_screen_action_now_playing(), test_search_screen_action_stop()
+Cohesion: 0.05
+Nodes (12): SearchScreen, on_dismiss(), SearchStatusBar, test_search_screen_action_delete_item_album_and_track(), test_search_screen_action_now_playing(), test_search_screen_action_quit_and_focus_search(), test_search_screen_action_stop(), test_search_screen_albums_and_three_pane_split() (+4 more)
 
 ### Community 24 - "glitch.py"
-Cohesion: 0.27
+Cohesion: 0.31
 Nodes (3): generate_glitch_frame(), test_generate_glitch_frame_contains_glitch_chars(), test_generate_glitch_frame_dimensions()
 
 ### Community 25 - "app.py"
-Cohesion: 0.06
-Nodes (22): active_line(), LyricLine, parse_lrc(), PlaybackState, SettingGroup, get_title_lines(), make_app(), MockLyricsService (+14 more)
+Cohesion: 0.07
+Nodes (21): active_line(), LyricLine, match_lyric_track(), normalize_lyric_match_text(), parse_lrc(), artist_name_matches(), extract_artist_name(), _extract_base_title() (+13 more)
 
 ### Community 26 - "updater.py"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (20): async_check_and_update(), find_repo_dir(), get_local_commit(), get_remote_commit(), get_remote_commit_async(), perform_update(), run_cli_update(), run_cli() (+12 more)
-
-### Community 29 - "test_phases_home_search.py"
-Cohesion: 0.28
-Nodes (3): test_search_screen_action_quit_and_focus_search(), test_search_screen_albums_and_three_pane_split(), test_search_screen_split_toggle()
-
-### Community 30 - "._do_search"
-Cohesion: 0.23
-Nodes (3): extract_artist_name(), is_artist_query(), test_artist_query_parsing()
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `orpheus`
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 220 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Track` connect `Database` to `asyncio`, `MpvPlayer`, `resolver.py`, `OrpheusApp`, `test_search_screen_artist_query_and_enter_submission`, `NowPlayingScreen`, `AlbumsModal`, `__main__.py`, `GlitchOverlay`, `SearchScreen`, `app.py`, `SearchStatusBar`, `._get_selected_track_and_context`, `test_search_screen_action_delete_item_album_and_track`?**
+- **Why does `Track` connect `Database` to `asyncio`, `MpvPlayer`, `resolver.py`, `OrpheusApp`, `PlaybackState`, `NowPlayingScreen`, `AlbumsModal`, `__main__.py`, `GlitchOverlay`, `SearchScreen`, `app.py`?**
   _High betweenness centrality (0.256) - this node is a cross-community bridge._
 - **Are the 44 inferred relationships involving `Track` (e.g. with `Task 2: Deezer Metadata Provider & YouTube yt-dlp Audio Resolver` and `Task 2: Update Track.playable and add Web Track Creation helper`) actually correct?**
   _`Track` has 44 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `orpheus` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `asyncio` be split into smaller, more focused modules?**
-  _Cohesion score 0.14532019704433496 - nodes in this community are weakly interconnected._
-- **Why does `OrpheusApp` connect `OrpheusApp` to `asyncio`, `MpvPlayer`, `HomeScreen`, `Database`, `resolver.py`, `NowPlayingScreen`, `AlbumsModal`, `SettingsModal`, `__main__.py`, `GlitchOverlay`, `SearchScreen`, `app.py`?**
+- **Should `MpvPlayer` be split into smaller, more focused modules?**
+  _Cohesion score 0.08597285067873303 - nodes in this community are weakly interconnected._
+- **Why does `OrpheusApp` connect `OrpheusApp` to `MpvPlayer`, `HomeScreen`, `Database`, `resolver.py`, `PlaybackState`, `NowPlayingScreen`, `AlbumsModal`, `SettingsModal`, `__main__.py`, `GlitchOverlay`, `SearchScreen`, `app.py`?**
   _High betweenness centrality (0.136) - this node is a cross-community bridge._
 - **Are the 25 inferred relationships involving `Database` (e.g. with `Task 6: User Albums / Playlists Store & Modal` and `AlbumStore`) actually correct?**
   _`Database` has 25 INFERRED edges - model-reasoned connections that need verification._
-- **Should `MpvPlayer` be split into smaller, more focused modules?**
-  _Cohesion score 0.08597285067873303 - nodes in this community are weakly interconnected._
+- **Should `HomeScreen` be split into smaller, more focused modules?**
+  _Cohesion score 0.10476190476190476 - nodes in this community are weakly interconnected._

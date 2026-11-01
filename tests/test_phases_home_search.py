@@ -260,10 +260,12 @@ def test_search_screen_action_delete_item_album_and_track():
 
     screen = SearchScreen()
     mock_store = MagicMock()
+    mock_notify = MagicMock()
 
     class DummyApp:
         album_store = mock_store
         queue = [Track("t1", "Track 1", "/1"), Track("t2", "Track 2", "/2")]
+        notify = mock_notify
 
     screen._app = DummyApp()
 
@@ -288,10 +290,14 @@ def test_search_screen_action_delete_item_album_and_track():
     screen._populate_albums_table = MagicMock()
     screen.action_delete_item()
     mock_store.delete_album.assert_called_once_with("MyFavs")
+    mock_notify.assert_called_with(
+        "Deleted album 'MyFavs'", title="Album Deleted", timeout=3.0, markup=False
+    )
 
     # Case 2: In #online-table with an album open
     screen._active_pane = "online"
     screen.current_selected_album = "Rock"
+    screen._online_results = [Track("t1", "Track 1", "/1"), Track("t2", "Track 2", "/2")]
     mock_store.get_album_tracks.return_value = [Track("t2", "Track 2", "/2")]
 
     class DummyTracksTable:
@@ -313,8 +319,15 @@ def test_search_screen_action_delete_item_album_and_track():
         def add_row(self, *args, **kwargs):
             pass
 
-    screen.query_one = lambda sel, cls=None: DummyTracksTable()
+    dummy_header = MagicMock()
+    screen.query_one = lambda sel, cls=None: dummy_header if "header" in sel else DummyTracksTable()
     screen.action_delete_item()
     mock_store.remove_track.assert_called_once_with("Rock", "t1")
     assert len(screen._app.queue) == 1
     assert screen._app.queue[0].id == "t2"
+    mock_notify.assert_called_with(
+        "Removed 'Track 1' from album 'Rock'",
+        title="Album Updated",
+        timeout=3.0,
+        markup=False,
+    )
