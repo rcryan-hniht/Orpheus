@@ -35,13 +35,57 @@ def test_search_screen_split_toggle():
 def test_search_status_bar_render():
     bar = SearchStatusBar()
     rendered = bar.render().plain
-    assert "[Alt+l]" in rendered
+    assert "[?]" in rendered
+    assert "Which key" in rendered
+    assert "[Alt+l]" not in rendered
+    assert "[Alt+h]" not in rendered
     assert "[a]" in rendered
     assert "[Enter]" in rendered
     assert "[f]" in rendered
     assert "[S]" in rendered
     assert "[q]" in rendered
     assert "[Esc]" in rendered
+
+
+def test_search_screen_albums_and_three_pane_split():
+    screen = SearchScreen()
+    assert screen.albums_split is False
+    assert screen.local_split is False
+
+    # Toggle albums split (Alt+h)
+    screen.action_toggle_albums_split()
+    assert screen.albums_split is True
+
+    # Toggle local split (Alt+l) -> now 3 panes
+    screen.action_toggle_split()
+    assert screen.local_split is True
+    assert screen.albums_split is True
+    assert screen.split_view is True
+
+    # Toggle off albums split -> 2 panes (online + local)
+    screen.action_toggle_albums_split()
+    assert screen.albums_split is False
+    assert screen.local_split is True
+
+    # Toggle off local split -> single pane
+    screen.action_toggle_split()
+    assert screen.local_split is False
+    assert screen.split_view is False
+
+
+def test_which_key_modal_dismiss():
+    from orpheus.which_key import WhichKeyModal
+
+    modal = WhichKeyModal()
+    dismissed = False
+
+    def fake_dismiss(res):
+        nonlocal dismissed
+        dismissed = True
+
+    modal.dismiss = fake_dismiss
+    modal.action_dismiss_modal()
+    assert dismissed is True
 
 
 def test_rank_tracks_by_query_exact_match_top():

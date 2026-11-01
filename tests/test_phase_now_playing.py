@@ -49,6 +49,8 @@ def test_now_playing_double_tap_seek():
 def test_now_playing_footer_render():
     footer = NowPlayingFooter()
     rendered = footer.render().plain
+    assert "[?]" in rendered
+    assert "Which key" in rendered
     assert "[space]" in rendered
     assert "Seek" in rendered
     assert "[r]" in rendered
@@ -81,13 +83,28 @@ def test_now_playing_action_find_and_quit():
 
 
 def test_synced_lyrics_widget_loading_and_empty():
+    from orpheus.models import Lyrics
     from orpheus.phases.now_playing import SyncedLyricsWidget
 
     w = SyncedLyricsWidget()
     w.set_loading(True)
-    assert "Loading lyrics" in w.render().plain
+    rendered_loading = w.render()
+    assert "Loading lyrics" in rendered_loading.plain
+    assert rendered_loading.justify == "center"
+
     w.set_lyrics(None)
-    assert "No lyrics available" in w.render().plain
+    rendered_empty = w.render()
+    assert "No lyrics available" in rendered_empty.plain
+    assert rendered_empty.justify == "center"
+
+    # Test center aligned active line with ▶ ... ◀
+    lrc = "[00:01.00]First line\n[00:05.00]Second line"
+    w.set_lyrics(Lyrics(synced=lrc))
+    w.set_position(2.0)
+    rendered_active = w.render()
+    assert rendered_active.justify == "center"
+    assert "▶  First line  ◀" in rendered_active.plain
+    assert "Second line" in rendered_active.plain
 
 
 def test_album_art_widget_render_half_blocks():

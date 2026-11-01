@@ -51,7 +51,7 @@ class SearchStatusBar(Static):
         accent = self._get_accent()
         text = Text()
         items = [
-            ("[Alt+l]", "Toggle Split"),
+            ("[?]", "Which key"),
             ("[a]", "Add to Album"),
             ("[Enter]", "Play"),
             ("[f]", "Find"),
@@ -68,9 +68,12 @@ class SearchStatusBar(Static):
 
 
 class SearchScreen(Screen):
-    """Search phase: Online Deezer search, arrow navigation, and [Alt+l] local split pane."""
+    """Search phase: Deezer search, navigation, [Alt+h] albums split, and [Alt+l] local split."""
 
     BINDINGS = [
+        Binding("question_mark", "which_key", "Which key", priority=True),
+        Binding("?", "which_key", "Which key", priority=True, show=False),
+        Binding("alt+h", "toggle_albums_split", "Split Albums", priority=True),
         Binding("alt+l", "toggle_split", "Split/Single", priority=True),
         Binding("escape", "handle_escape", "Back/Clear", priority=True),
         Binding("tab", "switch_pane", "Switch Pane", priority=False),
@@ -138,11 +141,20 @@ class SearchScreen(Screen):
         super().__init__(name=name, id=id, classes=classes)
         self.deezer_provider = deezer_provider or DeezerProvider()
         self.local_tracks = local_tracks or []
-        self.split_view = False
+        self.albums_split: bool = False
+        self.local_split: bool = False
         self._debounce_timer: asyncio.TimerHandle | None = None
         self._online_results: list[Track] = []
         self._active_pane = "online"
         self._search_generation = 0
+
+    @property
+    def split_view(self) -> bool:
+        return self.local_split
+
+    @split_view.setter
+    def split_view(self, val: bool) -> None:
+        self.local_split = val
 
     def compose(self) -> ComposeResult:
         with Vertical(id="search-bar-box"):
@@ -151,6 +163,10 @@ class SearchScreen(Screen):
             )
 
         with Horizontal(id="search-panes"):
+            with Vertical(id="albums-pane", classes="search-pane"):
+                yield Static("── MY ALBUMS ──", id="albums-header", classes="pane-header")
+                yield DataTable(id="albums-table")
+
             with Vertical(id="online-pane", classes="search-pane"):
                 yield Static(
                     "── ONLINE SEARCH (DEEZER) ──", id="online-header", classes="pane-header"
@@ -164,8 +180,15 @@ class SearchScreen(Screen):
         yield SearchStatusBar(id="search-status")
 
     def on_mount(self) -> None:
-        # Hide local pane by default
+        # Hide albums and local panes by default
+        self.query_one("#albums-pane").display = False
         self.query_one("#local-pane").display = False
+
+        # Init albums table
+        albums_table = self.query_one("#albums-table", DataTable)
+        albums_table.cursor_type = "row"
+        albums_table.add_columns("Album", "Tracks")
+        self._populate_albums_table()
 
         # Init online table
         online_table = self.query_one("#online-table", DataTable)
@@ -181,27 +204,52 @@ class SearchScreen(Screen):
         # Focus search input initially
         self.query_one("#search-input", Input).focus()
 
+    def _get_visible_panes(self) -> list[tuple[str, DataTable]]:
+        panes: list[tuple[str, DataTable]] = []
+        if self.albums_split:
+            try:
+                panes.append(("albums", self.query_one("#albums-table", DataTable)))
+            except Exception:
+                pass
+        try:
+            panes.append(("online", self.query_one("#online-table", DataTable)))
+        except Exception:
+            pass
+        if self.local_split:
+            try:
+                panes.append(("local", self.query_one("#local-table", DataTable)))
+            except Exception:
+                pass
+        return panes
+
     def _get_active_table(self) -> DataTable:
-        use_local = self._active_pane == "local" and self.split_view
-        return self.query_one("#local-table" if use_local else "#online-table", DataTable)
+        if self._active_pane == "albums" and self.albums_split:
+            return self.query_one("#albums-table", DataTable)
+        if self._active_pane == "local" and self.local_split:
+            return self.query_one("#local-table", DataTable)
+        return self.query_one("#online-table", DataTable)
 
     def on_key(self, event: events.Key) -> None:
         inp = self.query_one("#search-input", Input)
         table = self._get_active_table()
         if event.key in ("down", "tab"):
             if inp.has_focus:
-                if table.row_count > 0:
+                panes = self._get_visible_panes()
+                if panes:
                     event.prevent_default()
                     event.stop()
-                    table.focus()
-                    if table.cursor_row is None or table.cursor_row < 0:
-                        table.cursor_coordinate = Coordinate(0, 0)
-            elif table.has_focus and event.key == "tab" and not self.split_view:
+                    target = panes[0]
+                    self._active_pane = target[0]
+                    target[1].focus()
+                    if target[1].cursor_row is None or target[1].cursor_row < 0:
+                        if target[1].row_count > 0:
+                            target[1].cursor_coordinate = Coordinate(0, 0)
+            elif not inp.has_focus and event.key == "tab":
                 event.prevent_default()
                 event.stop()
-                inp.focus()
+                self.action_switch_pane(reverse=False)
         elif event.key in ("up", "shift+tab", "backtab"):
-            if table.has_focus:
+            if not inp.has_focus:
                 if (
                     event.key in ("shift+tab", "backtab")
                     or table.cursor_row is None
@@ -209,17 +257,44 @@ class SearchScreen(Screen):
                 ):
                     event.prevent_default()
                     event.stop()
-                    inp.focus()
-            elif inp.has_focus and event.key in ("shift+tab", "backtab") and not self.split_view:
-                if table.row_count > 0:
+                    if event.key in ("shift+tab", "backtab"):
+                        self.action_switch_pane(reverse=True)
+                    else:
+                        inp.focus()
+            elif inp.has_focus and event.key in ("shift+tab", "backtab"):
+                panes = self._get_visible_panes()
+                if panes:
                     event.prevent_default()
                     event.stop()
-                    table.focus()
+                    target = panes[-1]
+                    self._active_pane = target[0]
+                    target[1].focus()
+                    if target[1].cursor_row is None or target[1].cursor_row < 0:
+                        if target[1].row_count > 0:
+                            target[1].cursor_coordinate = Coordinate(0, 0)
         elif event.key in ("f", "ctrl+f"):
             if not inp.has_focus:
                 event.prevent_default()
                 event.stop()
                 inp.focus()
+
+    def _populate_albums_table(self, query: str = "") -> None:
+        try:
+            table = self.query_one("#albums-table", DataTable)
+            table.clear()
+            store = getattr(self.safe_app, "album_store", None)
+            if not store:
+                return
+            albums = store.list_albums()
+            if query:
+                q_lower = query.lower()
+                albums = [a for a in albums if q_lower in a.lower()]
+            for album_name in albums:
+                tracks = store.get_album_tracks(album_name)
+                count_str = f"{len(tracks)} tracks" if len(tracks) != 1 else "1 track"
+                table.add_row(album_name, count_str, key=f"album:{album_name}")
+        except Exception:
+            pass
 
     def _populate_local_table(self, query: str = "") -> None:
         table = self.query_one("#local-table", DataTable)
@@ -285,6 +360,7 @@ class SearchScreen(Screen):
                 pass
             self._online_results = []
             self._populate_local_table()
+            self._populate_albums_table()
             return
 
         if is_artist_query(query):
@@ -297,6 +373,7 @@ class SearchScreen(Screen):
                 pass
             tracks = await self.deezer_provider.search_by_artist(artist_name, limit=30)
             self._populate_local_table(query)
+            self._populate_albums_table(query)
         else:
             try:
                 self.query_one("#online-header", Static).update("── ONLINE SEARCH (DEEZER) ──")
@@ -305,6 +382,7 @@ class SearchScreen(Screen):
             raw_tracks = await self.deezer_provider.search(query, limit=25)
             tracks = rank_tracks_by_query(raw_tracks, query)
             self._populate_local_table(query)
+            self._populate_albums_table(query)
 
         if gen != self._search_generation or not self.is_mounted:
             return
@@ -321,31 +399,70 @@ class SearchScreen(Screen):
         except Exception:
             pass
 
-    def action_toggle_split(self) -> None:
-        self.split_view = not self.split_view
+    def action_toggle_albums_split(self) -> None:
+        self.albums_split = not self.albums_split
         try:
-            self.query_one("#local-pane").display = self.split_view
+            self.query_one("#albums-pane").display = self.albums_split
+            if self.albums_split:
+                self._populate_albums_table()
+                self._active_pane = "albums"
+                self.query_one("#albums-table", DataTable).focus()
+            elif self._active_pane == "albums":
+                self._active_pane = "online"
+                self.query_one("#online-table", DataTable).focus()
         except Exception:
             pass
 
-    def action_switch_pane(self) -> None:
-        if not self.split_view:
-            try:
-                inp = self.query_one("#search-input", Input)
-                table = self.query_one("#online-table", DataTable)
-                if inp.has_focus:
-                    table.focus()
+    def action_toggle_split(self) -> None:
+        self.local_split = not self.local_split
+        try:
+            self.query_one("#local-pane").display = self.local_split
+            if self.local_split:
+                self._populate_local_table()
+                self._active_pane = "local"
+                self.query_one("#local-table", DataTable).focus()
+            elif self._active_pane == "local":
+                self._active_pane = "online"
+                self.query_one("#online-table", DataTable).focus()
+        except Exception:
+            pass
+
+    def action_switch_pane(self, reverse: bool = False) -> None:
+        panes = self._get_visible_panes()
+        if not panes:
+            return
+        inp = self.query_one("#search-input", Input)
+        if inp.has_focus:
+            target = panes[-1] if reverse else panes[0]
+            self._active_pane = target[0]
+            target[1].focus()
+            if target[1].cursor_row is None and target[1].row_count > 0:
+                target[1].cursor_coordinate = Coordinate(0, 0)
+            return
+
+        curr_idx = -1
+        for i, (p_name, tbl) in enumerate(panes):
+            if tbl.has_focus or self._active_pane == p_name:
+                curr_idx = i
+                break
+
+        if curr_idx >= 0:
+            if reverse:
+                if curr_idx > 0:
+                    prev_pane, prev_tbl = panes[curr_idx - 1]
+                    self._active_pane = prev_pane
+                    prev_tbl.focus()
                 else:
                     inp.focus()
-            except Exception:
-                pass
-            return
-        if self._active_pane == "online":
-            self._active_pane = "local"
-            self.query_one("#local-table", DataTable).focus()
+            else:
+                if curr_idx < len(panes) - 1:
+                    next_pane, next_tbl = panes[curr_idx + 1]
+                    self._active_pane = next_pane
+                    next_tbl.focus()
+                else:
+                    inp.focus()
         else:
-            self._active_pane = "online"
-            self.query_one("#online-table", DataTable).focus()
+            inp.focus()
 
     @property
     def safe_app(self) -> Any:
@@ -379,6 +496,15 @@ class SearchScreen(Screen):
         if app and hasattr(app, "action_settings"):
             app.action_settings()
 
+    def action_which_key(self) -> None:
+        app = self.safe_app
+        if app and hasattr(app, "action_which_key"):
+            app.action_which_key()
+
+    def on_screen_resume(self) -> None:
+        if self.albums_split:
+            self._populate_albums_table()
+
     def action_add_to_album(self) -> None:
         track = self._get_highlighted_track()
         if not track:
@@ -387,8 +513,55 @@ class SearchScreen(Screen):
         if store:
             self.app.push_screen(AlbumsModal(store=store, target_track=track))
 
+    def _select_and_open_album(self, album_name: str, play_immediately: bool = False) -> None:
+        store = getattr(self.safe_app, "album_store", None)
+        if not store:
+            return
+        tracks = store.get_album_tracks(album_name)
+        self._online_results = tracks
+        try:
+            table = self.query_one("#online-table", DataTable)
+            table.clear()
+            for t in tracks:
+                dur = int(t.duration) if t.duration else 0
+                dur_str = f"{dur // 60}:{dur % 60:02d}" if t.duration else "--:--"
+                table.add_row(t.title, t.artist, t.album, dur_str, key=t.id)
+            self.query_one("#online-header", Static).update(
+                f"── ALBUM: {album_name.upper()} ({len(tracks)} tracks) ──"
+            )
+            if tracks:
+                table.cursor_coordinate = Coordinate(0, 0)
+                if play_immediately:
+                    first_track = tracks[0]
+                    queue = list(tracks[1:])
+                    if hasattr(self.app, "load_playlist_and_play"):
+                        self.app.load_playlist_and_play(first_track, queue, [])
+                    elif hasattr(self.app, "play_resolved_track"):
+                        self.app.play_resolved_track(first_track)
+                    self._active_pane = "online"
+                    table.focus()
+        except Exception:
+            pass
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        if event.data_table.id == "albums-table":
+            try:
+                row_key = (
+                    event.row_key.value if hasattr(event.row_key, "value") else str(event.row_key)
+                )
+                if row_key.startswith("album:"):
+                    album_name = row_key[len("album:") :]
+                    self._select_and_open_album(album_name, play_immediately=False)
+            except Exception:
+                pass
+
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         row_key = event.row_key.value if hasattr(event.row_key, "value") else str(event.row_key)
+        if row_key.startswith("album:"):
+            album_name = row_key[len("album:") :]
+            self._select_and_open_album(album_name, play_immediately=True)
+            return
+
         track, queue, history = self._get_track_and_context_by_key(row_key)
         if not track:
             track, queue, history = self._get_selected_track_and_context()
@@ -401,7 +574,7 @@ class SearchScreen(Screen):
     def _get_track_and_context_by_key(
         self, row_key: str
     ) -> tuple[Track | None, list[Track], list[Track]]:
-        use_local = self._active_pane == "local" and self.split_view
+        use_local = self._active_pane == "local" and self.local_split
         track_list = self.local_tracks if use_local else self._online_results
         for i, t in enumerate(track_list):
             if t.id == row_key:
@@ -414,7 +587,7 @@ class SearchScreen(Screen):
     def _get_selected_track_and_context(
         self, row_idx: int | None = None
     ) -> tuple[Track | None, list[Track], list[Track]]:
-        use_local = self._active_pane == "local" and self.split_view
+        use_local = self._active_pane == "local" and self.local_split
         table_id = "#local-table" if use_local else "#online-table"
         track_list = self.local_tracks if use_local else self._online_results
 

@@ -31,6 +31,8 @@ class OrpheusApp(App[None]):
 
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", priority=True),
+        Binding("question_mark", "which_key", "Which key", priority=True),
+        Binding("?", "which_key", "Which key", priority=True, show=False),
         Binding("space", "toggle_pause", "Play/Pause", show=False),
         Binding("s", "stop", "Stop", show=False),
         Binding("S", "settings", "Settings", show=False),
@@ -315,6 +317,12 @@ class OrpheusApp(App[None]):
                     await self.player.load(str(stem_path), start=self.playback.position)
             except Exception as exc:
                 logger.warning("Karaoke error: %s", exc)
+
+    def action_which_key(self) -> None:
+        """Open Which Key shortcuts reference modal."""
+        from orpheus.which_key import WhichKeyModal
+
+        self.push_screen(WhichKeyModal())
 
     def action_settings(self) -> None:
         """Open floating cyberpunk settings modal."""

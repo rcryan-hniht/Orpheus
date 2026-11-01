@@ -59,6 +59,7 @@ class ShortcutBar(Static):
     def get_items(self) -> list[tuple[str, str]]:
         if self.is_playing:
             return [
+                ("[?]", "Which key"),
                 ("[p]", "Playing"),
                 ("[s]", "Stop"),
                 ("[S]", "Settings"),
@@ -66,6 +67,7 @@ class ShortcutBar(Static):
                 ("[q]", "Quit"),
             ]
         return [
+            ("[?]", "Which key"),
             ("[S]", "Settings"),
             ("[f]", "Find"),
             ("[q]", "Quit"),
@@ -95,6 +97,8 @@ class HomeScreen(Screen):
     """Cyberpunk Home screen with Matrix rain, 3D ASCII title, and dynamic shortcut bar."""
 
     BINDINGS = [
+        Binding("question_mark", "which_key", "Which key", priority=True),
+        Binding("?", "which_key", "Which key", priority=True, show=False),
         Binding("f", "find", "Find", priority=True),
         Binding("S", "settings", "Settings", priority=True),
         Binding("p", "now_playing", "Now Playing", priority=True),
@@ -174,6 +178,10 @@ class HomeScreen(Screen):
     def action_find(self) -> None:
         if hasattr(self.app, "switch_phase"):
             self.app.switch_phase("search")
+
+    def action_which_key(self) -> None:
+        if hasattr(self.app, "action_which_key"):
+            self.app.action_which_key()
 
     def action_settings(self) -> None:
         if hasattr(self.app, "action_settings"):

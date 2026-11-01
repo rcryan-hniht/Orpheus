@@ -23,11 +23,6 @@
   "21": "asyncio",
   "22": "AsciiTitle",
   "23": "SearchScreen",
-  "24": "SearchStatusBar",
-  "25": "app.py",
-  "26": "test_search_screen_artist_query_and_enter_submission",
-  "27": "._get_active_table",
-  "28": "._get_selected_track_and_context",
-  "29": "Review Focus",
-  "30": "._do_search"
+  "24": "CavaVisualizer",
+  "25": "app.py"
 }

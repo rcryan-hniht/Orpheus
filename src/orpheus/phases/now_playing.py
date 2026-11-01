@@ -160,8 +160,9 @@ class SyncedLyricsWidget(Static):
     SyncedLyricsWidget {
         width: 100%;
         height: 100%;
-        padding: 1 4;
-        padding-left: 16;
+        padding: 1 2;
+        content-align: center middle;
+        text-align: center;
         background: transparent;
     }
     """
@@ -210,7 +211,7 @@ class SyncedLyricsWidget(Static):
 
     def render(self) -> Text:
         accent = self._get_accent()
-        text = Text()
+        text = Text(justify="center")
         if self._is_loading:
             text.append("Loading lyrics...\n", style="italic #505050")
             return text
@@ -243,10 +244,13 @@ class SyncedLyricsWidget(Static):
 
         for i in range(start_idx, end_idx):
             line = self.parsed_lines[i]
+            if not line.text.strip():
+                text.append("\n")
+                continue
             if i == active_idx:
-                text.append(f"▶  {line.text}\n", style=f"bold {accent}")
+                text.append(f"▶  {line.text}  ◀\n", style=f"bold {accent}")
             else:
-                text.append(f"   {line.text}\n", style="dim")
+                text.append(f"{line.text}\n", style="dim")
 
         return text
 
@@ -416,6 +420,7 @@ class NowPlayingFooter(Static):
         accent = self._get_accent()
         text = Text()
         items = [
+            ("[?]", "Which key"),
             ("[space]", "Play/Pause"),
             ("→/←", "Seek"),
             ("Shift+→/←", "Next/Prev"),
@@ -438,6 +443,8 @@ class NowPlayingScreen(Screen):
     """Now Playing phase with 2-column layout: Art/Controls + Synced Lyrics."""
 
     BINDINGS = [
+        Binding("question_mark", "which_key", "Which key", priority=True),
+        Binding("?", "which_key", "Which key", priority=True, show=False),
         Binding("space", "toggle_playback", "Play/Pause", priority=True),
         Binding("left", "seek_backward", "Seek -5s", priority=True),
         Binding("right", "seek_forward", "Seek +5s", priority=True),
@@ -696,3 +703,8 @@ class NowPlayingScreen(Screen):
         app = self.safe_app
         if app and hasattr(app, "switch_phase"):
             app.switch_phase("home")
+
+    def action_which_key(self) -> None:
+        app = self.safe_app
+        if app and hasattr(app, "action_which_key"):
+            app.action_which_key()
