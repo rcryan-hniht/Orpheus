@@ -26,17 +26,25 @@ class Database:
         )
         self.connection.commit()
 
-    def get_theme(self) -> str | None:
-        row = self.connection.execute("SELECT value FROM settings WHERE key = 'theme'").fetchone()
+    def get_setting(self, key: str) -> str | None:
+        row = self.connection.execute(
+            "SELECT value FROM settings WHERE key = ?", (key,)
+        ).fetchone()
         return row[0] if row else None
 
-    def set_theme(self, name: str) -> None:
+    def set_setting(self, key: str, value: str) -> None:
         with self.connection:
             self.connection.execute(
-                "INSERT INTO settings (key, value) VALUES ('theme', ?) "
+                "INSERT INTO settings (key, value) VALUES (?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                (name,),
+                (key, value),
             )
+
+    def get_theme(self) -> str | None:
+        return self.get_setting("theme")
+
+    def set_theme(self, name: str) -> None:
+        self.set_setting("theme", name)
 
     def get_delay(self, track_id: str) -> float:
         row = self.connection.execute(

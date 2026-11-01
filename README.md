@@ -1,83 +1,108 @@
 # 🎵 Orpheus
 
-**Orpheus** là ứng dụng nghe nhạc TUI (Terminal User Interface) hiện đại, nhẹ và mạnh mẽ trên Linux (hỗ trợ Wayland & X11) và macOS, được xây dựng bằng Python và framework Textual. Âm thanh được phát mượt mà qua mpv JSON IPC.
+**Orpheus** is a modern, lightweight terminal music player for Linux (Wayland & X11) and macOS, built with Python and Textual. Audio is played smoothly via the mpv JSON IPC engine without video windows or bloat.
 
 ---
 
-## ⚡ Cài đặt nhanh (1 dòng lệnh)
+## ⚡ Quick Install (One-Line Command)
 
-Chỉ cần chạy lệnh sau trong terminal để tải và cài đặt tự động:
+Run this single command in your terminal to automatically install Orpheus:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/rcryan-hniht/Orpheus/main/install.sh | bash
 ```
 
-Sau khi cài đặt xong, bạn có thể mở ứng dụng ngay lập tức bằng lệnh:
+Once installed, simply launch the app from any terminal window:
 
 ```bash
 orpheus
 ```
 
-*(Yêu cầu hệ thống: Python 3.11+ và `mpv`. Nếu máy chưa có `mpv`, hãy cài bằng `sudo apt install mpv` trên Ubuntu/Debian hoặc `brew install mpv` trên macOS).*
+*(Requirements: Python 3.11+ and `mpv`. If `mpv` is not installed, install it with `sudo apt install mpv` on Ubuntu/Debian or `brew install mpv` on macOS).*
 
 ---
 
-## ✨ Tính năng nổi bật (Features)
+## ✨ Features
 
-- **🎧 Phát nhạc Local-First**: Quét thư mục nhạc máy tính (`~/Music` hoặc tùy chọn qua `--music-dir`), hỗ trợ hầu hết định dạng âm thanh phổ biến: MP3, FLAC, Ogg, WAV, M4A, OPUS,... Đọc tags metadata (tên bài hát, ca sĩ, album, thời lượng) siêu tốc bằng `mutagen`.
-- **⚡ Động cơ mpv hiệu năng cao**: Kết nối qua giao thức mpv JSON IPC ngầm, không mở cửa sổ video, không giật lag giao diện, xuất âm thanh trực tiếp qua PipeWire / PulseAudio.
-- **📜 Synced Lyrics thời gian thực**: Tự động tra cứu và cuộn lời bài hát đồng bộ từng giây từ [LRCLIB](https://lrclib.net); hỗ trợ cả plain lyrics và lưu cache cục bộ SQLite 30 ngày.
-- **⏱️ Chỉnh độ trễ (Delay) Lyrics trực tiếp**: Tinh chỉnh độ trễ lời bài hát ngay khi nghe bằng phím tắt `[` / `]` (±0.25s). Mức delay được lưu riêng cho từng bài vào database.
-- **📋 Hàng đợi phát (Queue) bền bỉ**: Thêm bài (`e`), xóa bài (`Delete`), tự động chuyển bài tiếp theo khi hết nhạc. Toàn bộ hàng đợi được lưu liên tục vào SQLite, không sợ mất khi tắt app.
-- **🎤 Tách giọng hát Karaoke (Demucs)**: Tạo bản beat không giọng hát (Instrumental) cục bộ bằng Demucs (`k`). Giữ nguyên tiến trình giây phát và trạng thái khi chuyển đổi giữa bản gốc và bản karaoke.
-- **🎨 Giao diện tùy biến với Color Themes**: Tích hợp 5 chủ đề màu sắc ấn tượng (`github-dark-contrast`, `blackmetal`, `catppuccin-latte`, `sequoia-light-monochrome`, `github-light-contrast`), chuyển đổi ngay trong TUI hoặc qua cờ `--theme`.
-- **🌐 Nguồn nhạc trực tuyến & YouTube Metadata**:
-  - Hỗ trợ nguồn danh mục âm thanh HTTPS có giấy phép Creative Commons qua cờ `--catalog`.
-  - Tra cứu metadata bài hát qua YouTube Data API v3 (`--youtube`).
+- **🎧 Local-First Audio Playback**: Recursively scans and indexes your music library (`~/Music` or customized via `--music-dir`). Supports MP3, FLAC, Ogg, WAV, M4A, OPUS, and more. Fast metadata tag extraction (title, artist, album, duration) using `mutagen`.
+- **⚡ mpv Engine via JSON IPC**: High-performance audio playback via background Unix socket IPC. Zero UI lag, no video windows, direct output to PipeWire or PulseAudio.
+- **📜 Real-Time Synced Lyrics**: Automatic lookup and smooth synchronized scrolling lyrics from [LRCLIB](https://lrclib.net). Falls back to plain text lyrics and caches results locally in SQLite for 30 days.
+- **⏱️ Live Lyric Delay Tuning**: Adjust lyric timing on the fly using `[` and `]` (±0.25s). Timing offsets are persistently remembered per song in the local database.
+- **📋 Persistent Playback Queue**: Enqueue tracks (`e`), delete items (`Delete`), and enjoy seamless auto-advance when songs end. Queues survive app restarts.
+- **🎤 Optional Karaoke Separation (Demucs)**: Generate local instrumental/vocal stems with Demucs (`k`). Preserves playback position and pause state when toggling between original and instrumental tracks.
+- **🎨 Built-in Color Themes**: Switch instantly between 5 presets (`github-dark-contrast`, `blackmetal`, `catppuccin-latte`, `sequoia-light-monochrome`, `github-light-contrast`) via in-app dropdown or `--theme` CLI flag.
+- **🔄 Automatic Background Updates**: Checks for updates quietly in the background and notifies you when an update is ready.
+- **🌐 Licensed Catalog & YouTube Search**:
+  - Play licensed HTTPS audio catalogs via `--catalog examples/catalog.json`.
+  - Search metadata via YouTube Data API v3 (`--youtube`).
 
 ---
 
-## ⌨️ Phím tắt điều khiển (Shortcuts)
+## ⌨️ Keyboard Shortcuts
 
-| Phím | Chức năng |
+| Key | Action |
 | :--- | :--- |
-| **Enter** | Phát bài hát đang chọn |
-| **`e`** | Thêm bài đang chọn vào hàng đợi phát (Queue) |
-| **Tab** / **Shift+Tab** | Di chuyển focus giữa các khung (Search, Track List, Queue, Lyrics) |
-| **Delete** | Xóa mục được chọn ra khỏi hàng đợi |
-| **Space** | Tạm dừng (Pause) / Tiếp tục phát |
-| **`s`** / **`n`** | Dừng hẳn phát / Chuyển sang bài tiếp theo |
-| **`←`** / **`→`** | Tua lùi / Tua tiến 5 giây |
-| **`-`** / **`+`** | Giảm / Tăng âm lượng |
-| **`[`** / **`]`** | Giảm / Tăng delay lời bài hát 0.25 giây |
-| **`r`** | Tải lại lời bài hát từ cache / API LRCLIB |
-| **`k`** | Bật Karaoke (Instrumental) / Quay lại bản gốc |
-| **Ctrl+Q** | Thoát ứng dụng |
+| **Enter** | Play selected track |
+| **`e`** | Enqueue selected track |
+| **Tab** / **Shift+Tab** | Navigate focus between panels (Search, Track List, Queue, Lyrics) |
+| **Delete** | Remove selected item from queue |
+| **Space** | Pause / Resume playback |
+| **`s`** / **`n`** | Stop playback / Next track in queue |
+| **`←`** / **`→`** | Seek backward / forward 5 seconds |
+| **`-`** / **`+`** | Volume down / up |
+| **`[`** / **`]`** | Decrease / increase lyric delay by 0.25s |
+| **`r`** | Reload lyrics from cache or LRCLIB |
+| **`k`** | Toggle Karaoke (Instrumental) / Original track |
+| **Ctrl+Q** | Quit Orpheus |
 
 ---
 
-## 🛠️ Tùy chọn dòng lệnh (CLI Options)
+## 🛠️ CLI Options
+
+```text
+usage: orpheus [-h] [-v] [--update] [--no-auto-update] [--music-dir MUSIC_DIR]
+               [--catalog CATALOG] [--data-dir DATA_DIR]
+               [--cache-dir CACHE_DIR] [--mpv MPV] [--demucs DEMUCS]
+               [--youtube]
+               [--theme {blackmetal,sequoia-light-monochrome,catppuccin-latte,github-dark-contrast,github-light-contrast}]
+
+options:
+  -h, --help            Show this help message and exit
+  -v, --version         Show program's version number and exit
+  --update              Check for updates and upgrade Orpheus to the latest version
+  --no-auto-update      Disable background automatic update checking
+  --music-dir MUSIC_DIR Local music folder (default: ~/Music)
+  --catalog CATALOG     Licensed catalog JSON file
+  --data-dir DATA_DIR   SQLite database and log folder
+  --cache-dir CACHE_DIR Vocal stem cache folder
+  --mpv MPV             mpv executable path (default: mpv)
+  --demucs DEMUCS       Demucs executable path (default: demucs)
+  --youtube             Enable YouTube metadata search (requires YOUTUBE_API_KEY)
+  --theme THEME         Select color theme preset
+```
+
+### Examples
 
 ```bash
-# Xem toàn bộ trợ giúp
-orpheus --help
+# Check version
+orpheus -v
 
-# Chỉ định thư mục nhạc cụ thể
+# Self-update to latest release
+orpheus --update
+
+# Specify custom music folder
 orpheus --music-dir "$HOME/Music/Favorites"
 
-# Chạy với danh mục nhạc mẫu có bản quyền
+# Launch with sample licensed catalog
 orpheus --catalog examples/catalog.json
 
-# Khởi động với giao diện màu yêu thích
+# Launch with a specific theme
 orpheus --theme github-dark-contrast
-
-# Tìm kiếm metadata YouTube (cần YOUTUBE_API_KEY)
-YOUTUBE_API_KEY="your_api_key" orpheus --youtube
 ```
 
 ---
 
-## 💻 Cài đặt thủ công dành cho lập trình viên
+## 💻 Manual Installation (for Developers)
 
 ```bash
 git clone https://github.com/rcryan-hniht/Orpheus.git
@@ -87,16 +112,16 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
 
-# Chạy kiểm thử & linter
+# Run tests and linter
 pytest
 ruff check src tests
 
-# Chạy app
+# Run Orpheus locally
 python -m orpheus --catalog examples/catalog.json
 ```
 
 ---
 
-## 📄 Bản quyền & Đóng góp
+## 📄 License & Contribution
 
-Dự án được phân phối theo giấy phép mã nguồn mở. Mọi đóng góp, báo lỗi (issue) và pull request đều được hoan nghênh!
+Orpheus is open-source software. Issues, contributions, and pull requests are warmly welcomed!

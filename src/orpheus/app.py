@@ -177,8 +177,10 @@ class OrpheusApp(App):
         music_dir: Path,
         theme: str | None = None,
         browser_opener: Callable[[str], bool] | None = None,
+        auto_update: bool = True,
     ):
         super().__init__()
+        self._auto_update = auto_update
         self.providers = providers
         self.player = player
         self.database = database
@@ -251,6 +253,19 @@ class OrpheusApp(App):
             self._status(f"No music directory at {self.music_dir}. Pass --music-dir to choose one.")
         self.search("", "local")
         self.set_interval(0.5, self.poll_player)
+        if self._auto_update:
+            self._check_background_update()
+
+    @work(group="auto_update", exclusive=True)
+    async def _check_background_update(self) -> None:
+        await asyncio.sleep(3.0)
+        try:
+            from .updater import async_check_and_update
+            has_update, message = await async_check_and_update(self.database)
+            if has_update and message:
+                self.notify(message, title="Orpheus Update", severity="information", timeout=8.0)
+        except Exception as exc:
+            LOG.debug("Background update check encountered an error: %s", exc)
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool:
         if isinstance(self.focused, Input) and action != "quit":

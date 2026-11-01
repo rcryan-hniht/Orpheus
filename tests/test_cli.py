@@ -23,6 +23,22 @@ def test_help_works_without_loading_textual():
     assert "--music-dir" in result.stdout
     assert "--youtube" in result.stdout
     assert "--theme" in result.stdout
+    assert "--update" in result.stdout
+    assert "--version" in result.stdout
+
+    result_short = run_cli("-h")
+    assert result_short.returncode == 0
+    assert "--music-dir" in result_short.stdout
+
+
+def test_version_flag():
+    result = run_cli("--version")
+    assert result.returncode == 0
+    assert "0.1.0" in result.stdout or "0.1.0" in result.stderr
+
+    result_v = run_cli("-v")
+    assert result_v.returncode == 0
+    assert "0.1.0" in result_v.stdout or "0.1.0" in result_v.stderr
 
 
 def test_theme_flag_rejects_unknown_preset(tmp_path):

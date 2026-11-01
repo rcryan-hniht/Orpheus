@@ -4,14 +4,33 @@ import argparse
 import asyncio
 import logging
 import os
+import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from . import __version__
 from .themes import PRESET_LABELS
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Play local music in your terminal")
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="show program's version number and exit",
+    )
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="check for updates and upgrade Orpheus to the latest version",
+    )
+    parser.add_argument(
+        "--no-auto-update",
+        action="store_true",
+        help="disable background automatic updates",
+    )
     parser.add_argument("--music-dir", type=Path, help="local music folder (default: ~/Music)")
     parser.add_argument("--catalog", type=Path, help="licensed catalog JSON file")
     parser.add_argument(
@@ -33,6 +52,10 @@ def main(argv: list[str] | None = None) -> None:
         "--theme", choices=[slug for slug, _ in PRESET_LABELS], help="color theme preset"
     )
     args = parser.parse_args(argv)
+
+    if args.update:
+        from .updater import run_cli_update
+        sys.exit(run_cli_update())
 
     music_dir = (args.music_dir or Path.home() / "Music").expanduser()
     if args.music_dir is not None and not music_dir.is_dir():
@@ -79,6 +102,7 @@ def main(argv: list[str] | None = None) -> None:
         separator=Separator(cache_dir, args.demucs),
         music_dir=music_dir,
         theme=args.theme,
+        auto_update=not args.no_auto_update,
     )
 
     async def run() -> None:
