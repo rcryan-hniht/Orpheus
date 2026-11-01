@@ -340,6 +340,7 @@ def test_search_screen_action_delete_item_album_and_track():
     class DummyTracksTable:
         cursor_row = 0
         row_count = 1
+        cursor_coordinate = None
 
         def coordinate_to_cell_key(self, coord):
             class CellKey:
@@ -354,6 +355,9 @@ def test_search_screen_action_delete_item_album_and_track():
             pass
 
         def add_row(self, *args, **kwargs):
+            pass
+
+        def focus(self):
             pass
 
     dummy_header = MagicMock()

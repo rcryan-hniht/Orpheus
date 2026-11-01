@@ -1,5 +1,5 @@
 {
-  "0": "CavaVisualizer",
+  "0": "CavaReader",
   "1": "MpvPlayer",
   "2": "HomeScreen",
   "3": "Database",
@@ -16,7 +16,7 @@
   "14": "2026-11-01-orpheus-themes.md",
   "15": "AlbumsModal",
   "16": "SettingsModal",
-  "17": "test_visuals.py",
+  "17": "CavaVisualizer",
   "18": "ShortcutBar",
   "19": "__main__.py",
   "20": "MatrixRain",
@@ -24,15 +24,13 @@
   "22": "AsciiTitle",
   "23": "AlbumNameModal",
   "24": "glitch.py",
-  "25": "test_app.py",
-  "26": "updater.py",
+  "25": "app.py",
+  "26": "httpx",
   "27": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification",
   "28": "SearchStatusBar",
-  "29": "app.py",
-  "30": ".on_key",
-  "31": "now_playing.py",
+  "29": "cava.py",
+  "30": ".safe_app",
+  "31": "updater.py",
   "32": "test_phases_home_search.py",
-  "33": "test_cli.py",
-  "34": "models.py",
-  "35": "._get_selected_track_and_context"
+  "33": "test_cli.py"
 }

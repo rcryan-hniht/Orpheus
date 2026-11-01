@@ -816,6 +816,12 @@ class SearchScreen(Screen):
             if not alb_name:
                 return
 
+            try:
+                albums_tbl = self.query_one("#albums-table", DataTable)
+                old_idx = albums_tbl.cursor_row if albums_tbl.cursor_row is not None else 0
+            except Exception:
+                old_idx = 0
+
             modal = ConfirmModal(
                 title="Delete Album",
                 message=(
@@ -833,15 +839,32 @@ class SearchScreen(Screen):
                 if not st:
                     return
                 st.delete_album(alb_name)
-                if self.current_selected_album == alb_name:
-                    self.current_selected_album = None
-                    self._online_results = []
-                    try:
+                remaining = st.list_albums()
+                self._populate_albums_table()
+                try:
+                    tbl = self.query_one("#albums-table", DataTable)
+                    if remaining:
+                        new_idx = min(old_idx, len(remaining) - 1)
+                        tbl.cursor_coordinate = Coordinate(new_idx, 0)
+                        self._active_pane = "albums"
+                        if hasattr(tbl, "focus"):
+                            tbl.focus()
+                        if self.current_selected_album == alb_name:
+                            next_album = remaining[new_idx]
+                            self._select_and_open_album(next_album, play_immediately=False)
+                            self._active_pane = "albums"
+                            if hasattr(tbl, "focus"):
+                                tbl.focus()
+                    else:
+                        self.current_selected_album = None
+                        self._online_results = []
                         self.query_one("#online-table", DataTable).clear()
                         self.query_one("#online-header", Static).update("── SEARCH ──")
-                    except Exception:
-                        pass
-                self._populate_albums_table()
+                        self._active_pane = "albums"
+                        if hasattr(tbl, "focus"):
+                            tbl.focus()
+                except Exception:
+                    pass
                 try:
                     ap = self.safe_app
                     if ap and hasattr(ap, "notify"):
@@ -887,6 +910,9 @@ class SearchScreen(Screen):
                         new_idx = min(idx, len(updated) - 1)
                         tbl.cursor_coordinate = Coordinate(new_idx, 0)
                     self._populate_albums_table()
+                    self._active_pane = "online"
+                    if hasattr(tbl, "focus"):
+                        tbl.focus()
                     alb_target = self.current_selected_album
                     try:
                         if app and hasattr(app, "notify"):
@@ -898,6 +924,7 @@ class SearchScreen(Screen):
                             )
                     except Exception:
                         pass
+                    self._refresh_status_bar()
             except Exception:
                 pass
 

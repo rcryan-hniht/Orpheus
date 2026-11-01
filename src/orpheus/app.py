@@ -80,6 +80,8 @@ class OrpheusApp(App[None]):
         # Audio state
         self.current_track: Track | None = None
         self.current_album: str | None = None
+        self.last_played_track: Track | None = None
+        self.last_album: str | None = None
         self.current_lyrics: Lyrics | None = None
         self.playback = PlaybackState()
         self.queue: list[Track] = []
@@ -179,8 +181,18 @@ class OrpheusApp(App[None]):
         self.history = list(history or [])
         self.play_resolved_track(track)
 
+    def is_single_track_album(self) -> bool:
+        alb = self.current_album or getattr(self, "last_album", None)
+        if alb and self.album_store:
+            tracks = self.album_store.get_album_tracks(alb)
+            if tracks:
+                return len(tracks) == 1
+        return len(self.queue) == 0 and len(self.history) == 0
+
     def play_resolved_track(self, track: Track) -> None:
         """Transition to Now Playing and resolve/stream audio without blocking UI."""
+        self.last_played_track = track
+        self.last_album = self.current_album
         is_changing_track = self.current_track is not None and self.current_track != track
         if self.current_track and self.current_track != track:
             if not self.history or self.history[-1] != self.current_track:
@@ -253,10 +265,14 @@ class OrpheusApp(App[None]):
             # Auto-advance when track ended
             if state.ended and self.current_track:
                 ended_t = self.current_track
+                self.last_played_track = ended_t
+                self.last_album = self.current_album
                 if not self.history or self.history[-1] != ended_t:
                     self.history.append(ended_t)
                 self.current_track = None
-                if self.repeat_mode == "track":
+                if self.is_single_track_album() and self.repeat_mode != "track":
+                    await self.action_stop()
+                elif self.repeat_mode == "track":
                     self.play_resolved_track(ended_t)
                 elif self.current_album and self.queue:
                     # Switch to next song in the album
@@ -279,6 +295,24 @@ class OrpheusApp(App[None]):
             pass
 
     async def action_toggle_pause(self) -> None:
+        # If playback is stopped / ended or idle, and we have a last_played_track, replay it!
+        is_inactive = (
+            self.playback.idle
+            or self.playback.ended
+            or self.current_track is None
+            or (self.playback.position <= 0.0 and self.playback.paused)
+        )
+        if is_inactive and getattr(self, "last_played_track", None) is not None:
+            track = self.last_played_track
+            alb = getattr(self, "last_album", None)
+            if alb and self.album_store:
+                alb_tracks = self.album_store.get_album_tracks(alb)
+                q = alb_tracks[1:] if len(alb_tracks) > 1 else []
+                self.load_playlist_and_play(track, queue=q, album=alb)
+            else:
+                self.play_resolved_track(track)
+            return
+
         if self.player:
             await self.player.toggle_pause()
 
@@ -298,11 +332,15 @@ class OrpheusApp(App[None]):
             pass
 
     async def action_seek(self, delta: float) -> None:
+        if self.is_single_track_album():
+            return
         if self.player:
             new_pos = max(0.0, self.playback.position + delta)
             await self.player.seek(new_pos)
 
     async def action_prev(self) -> None:
+        if self.is_single_track_album():
+            return
         # If seek > 3s, restart current track
         if self.playback.position > 3.0 and self.player:
             await self.player.seek(0)
@@ -322,6 +360,8 @@ class OrpheusApp(App[None]):
             await self.player.seek(0)
 
     async def action_next(self) -> None:
+        if self.is_single_track_album():
+            return
         if self.repeat_mode == "track" and self.current_track:
             self.play_resolved_track(self.current_track)
         elif self.current_album and self.queue:

@@ -221,3 +221,48 @@ def test_app_poll_player_album_vs_standalone(tmp_path):
         await app.close()
 
     asyncio.run(scenario())
+
+
+def test_app_single_track_album_no_seek_stop_and_space_replay(tmp_path):
+    async def scenario():
+        app, player, db = make_app(tmp_path)
+        with patch.object(
+            app.audio_resolver,
+            "resolve_stream_url",
+            new=AsyncMock(return_value=("/music/song.mp3", "local")),
+        ):
+            async with app.run_test():
+                # 1. Load a single-track album
+                app.load_playlist_and_play(LOCAL, queue=[], album="Solo Album")
+                await asyncio.sleep(0.1)
+                assert app.is_single_track_album() is True
+
+                initial_pos = player.state.position
+                # 2. Seeking has no effect on single-track album
+                await app.action_seek(15.0)
+                assert player.state.position == initial_pos
+
+                # 3. Next / Prev has no effect
+                await app.action_next()
+                assert app.current_track == LOCAL
+                await app.action_prev()
+                assert app.current_track == LOCAL
+
+                # 4. When song ends, it stops
+                player.state = PlaybackState(ended=True, position=180.0, duration=180.0)
+                await app.poll_player()
+                assert player.stops >= 1
+                assert app.current_track is None
+                assert app.last_played_track == LOCAL
+
+                # 5. Pressing space replays the track from start
+                await app.action_toggle_pause()
+                await asyncio.sleep(0.1)
+                assert app.current_track == LOCAL
+
+                # 6. While active, space toggles pause
+                await app.action_toggle_pause()
+                assert player.state.paused is True
+        await app.close()
+
+    asyncio.run(scenario())

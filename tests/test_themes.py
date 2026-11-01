@@ -93,6 +93,18 @@ def test_saved_theme_restored_and_cli_override_persisted(tmp_path):
     asyncio.run(scenario())
 
 
+def test_blackmetal_preset_matches_ghostty():
+    themes = {t.name: t for t in get_themes()}
+    assert "blackmetal" in themes
+    bm = themes["blackmetal"]
+    assert bm.dark is True
+    assert bm.background == "#000000"
+    assert bm.foreground == "#c1c1c1"
+    assert bm.primary == "#486e6f"
+    assert bm.secondary == "#a06666"
+    assert bm.accent == "#dd9999"
+
+
 def test_unknown_saved_theme_falls_back(tmp_path):
     async def scenario():
         db = Database(tmp_path / "music.sqlite")

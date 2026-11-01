@@ -764,16 +764,20 @@ class NowPlayingScreen(Screen):
             return getattr(self, "_app", None)
 
     async def action_seek_forward(self) -> None:
-        delta = self.calc_seek_delta("forward")
         app = self.safe_app
+        if app and hasattr(app, "is_single_track_album") and app.is_single_track_album():
+            return
+        delta = self.calc_seek_delta("forward")
         if app and hasattr(app, "action_seek"):
             res = app.action_seek(delta)
             if hasattr(res, "__await__"):
                 await res
 
     async def action_seek_backward(self) -> None:
-        delta = self.calc_seek_delta("backward")
         app = self.safe_app
+        if app and hasattr(app, "is_single_track_album") and app.is_single_track_album():
+            return
+        delta = self.calc_seek_delta("backward")
         if app and hasattr(app, "action_seek"):
             res = app.action_seek(-delta)
             if hasattr(res, "__await__"):
@@ -795,6 +799,8 @@ class NowPlayingScreen(Screen):
 
     async def action_prev_track(self) -> None:
         app = self.safe_app
+        if app and hasattr(app, "is_single_track_album") and app.is_single_track_album():
+            return
         if app and hasattr(app, "action_prev"):
             res = app.action_prev()
             if hasattr(res, "__await__"):
@@ -802,6 +808,8 @@ class NowPlayingScreen(Screen):
 
     async def action_next_track(self) -> None:
         app = self.safe_app
+        if app and hasattr(app, "is_single_track_album") and app.is_single_track_album():
+            return
         if app and hasattr(app, "action_next"):
             res = app.action_next()
             if hasattr(res, "__await__"):
