@@ -3,7 +3,7 @@
   "1": "MpvPlayer",
   "2": "HomeScreen",
   "3": "Database",
-  "4": "DeezerProvider",
+  "4": "resolver.py",
   "5": "Xác minh TermMusic MVP",
   "6": "install.sh",
   "7": "OrpheusApp",
@@ -28,8 +28,8 @@
   "26": "updater.py",
   "27": "SearchStatusBar",
   "28": "._get_selected_track_and_context",
-  "29": "._populate_local_table",
-  "30": "test_visuals.py",
+  "29": "test_phases_home_search.py",
+  "30": "._do_search",
   "31": "test_search_screen_action_delete_item_album_and_track",
   "32": "ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan"
 }

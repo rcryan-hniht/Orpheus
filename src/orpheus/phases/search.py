@@ -16,6 +16,7 @@ from orpheus.albums import AlbumsModal
 from orpheus.models import Track
 from orpheus.resolver import (
     DeezerProvider,
+    artist_name_matches,
     extract_artist_name,
     is_artist_query,
     rank_tracks_by_query,
@@ -349,8 +350,8 @@ class SearchScreen(Screen):
         tracks = self.local_tracks
         if query:
             if is_artist_query(query):
-                art_name = extract_artist_name(query).lower()
-                tracks = [t for t in tracks if art_name in t.artist.lower()]
+                art_name = extract_artist_name(query)
+                tracks = [t for t in tracks if artist_name_matches(art_name, t.artist)]
             else:
                 q_lower = query.lower()
                 tracks = [

@@ -30,6 +30,43 @@ def _extract_base_title(title: str) -> str:
     return _normalize_for_match(stripped)
 
 
+def _fold_ascii(text: str) -> str:
+    """Fold text to lowercase ASCII, stripping diacritics and handling Vietnamese Đ/đ."""
+    text = text.replace("đ", "d").replace("Đ", "D")
+    norm = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in norm if not unicodedata.combining(c)).casefold()
+
+
+def normalize_artist(text: str) -> str:
+    """Normalize artist name by removing punctuation and collapsing whitespace."""
+    folded = _fold_ascii(text)
+    clean = re.sub(r"[^\w\s]", "", folded)
+    return " ".join(clean.split())
+
+
+def artist_name_matches(target: str, candidate: str) -> bool:
+    """Return True if candidate artist matches target artist name.
+
+    Handles diacritics/accents (e.g. 'Huong Ly' == 'Hương Ly'), casing,
+    collaborations ('Huong Ly, Duy Dong'), and boundaries (prevents 'Cam' matching 'Camila').
+    """
+    t = normalize_artist(target)
+    c = normalize_artist(candidate)
+    if not t or not c:
+        return False
+    if t == c or t.replace(" ", "") == c.replace(" ", ""):
+        return True
+    pattern_t = r"\b" + re.escape(t) + r"\b"
+    pattern_c = r"\b" + re.escape(c) + r"\b"
+    if re.search(pattern_t, c) or re.search(pattern_c, t):
+        return True
+    t_no_space = t.replace(" ", "")
+    c_no_space = c.replace(" ", "")
+    if len(t_no_space) >= 4 and t_no_space in c_no_space:
+        return True
+    return False
+
+
 def is_artist_query(query: str) -> bool:
     """Return True if query signifies an artist search (e.g. '@DangRangTo')."""
     q = query.strip()
@@ -160,59 +197,113 @@ class DeezerProvider:
         seen: set[str] = set()
 
         try:
-            art_task = client.get(f"https://api.deezer.com/search/artist?q={q_enc}&limit=3")
-            track_task = client.get(f"https://api.deezer.com/search?q={q_enc}&limit={limit}")
+            art_task = client.get(f"https://api.deezer.com/search/artist?q={q_enc}&limit=5")
+            track_task = client.get(f"https://api.deezer.com/search?q={q_enc}&limit=100")
             art_resp, track_resp = await asyncio.gather(
                 art_task, track_task, return_exceptions=True
             )
 
-            # 1. From artist ID, fetch top tracks
+            # 1. Strictly match candidate artists by name (filters out fuzzy noise like Jungle)
+            matched_artists: list[dict[str, Any]] = []
             if not isinstance(art_resp, Exception) and art_resp.status_code == 200:
                 artists = art_resp.json().get("data", [])
-                if artists:
-                    top_tasks = [
-                        client.get(f"https://api.deezer.com/artist/{a.get('id')}/top?limit={limit}")
-                        for a in artists[:2]
-                    ]
-                    top_resps = await asyncio.gather(*top_tasks, return_exceptions=True)
-                    for tr in top_resps:
-                        if not isinstance(tr, Exception) and tr.status_code == 200:
-                            for item in tr.json().get("data", []):
-                                tid = f"dz-{item.get('id')}"
-                                if tid not in seen:
-                                    seen.add(tid)
-                                    art_info = item.get("artist") or {}
-                                    alb_info = item.get("album") or {}
-                                    tracks.append(
-                                        Track(
-                                            id=tid,
-                                            title=item.get("title", "Unknown"),
-                                            location=item.get("link", ""),
-                                            artist=art_info.get("name", ""),
-                                            album=alb_info.get("title", ""),
-                                            duration=float(item.get("duration", 0)),
-                                            source="deezer",
-                                            cover_url=alb_info.get("cover_medium")
-                                            or alb_info.get("cover", ""),
-                                        )
+                for a in artists:
+                    if artist_name_matches(artist_name, a.get("name", "")):
+                        matched_artists.append(a)
+
+            # For matched artists, fetch top tracks and album releases
+            if matched_artists:
+                top_tasks = [
+                    client.get(f"https://api.deezer.com/artist/{a.get('id')}/top?limit={limit}")
+                    for a in matched_artists[:2]
+                ]
+                album_tasks = [
+                    client.get(f"https://api.deezer.com/artist/{a.get('id')}/albums?limit=5")
+                    for a in matched_artists[:2]
+                ]
+                responses = await asyncio.gather(*top_tasks, *album_tasks, return_exceptions=True)
+                top_resps = responses[: len(top_tasks)]
+                album_resps = responses[len(top_tasks) :]
+
+                for tr in top_resps:
+                    if not isinstance(tr, Exception) and tr.status_code == 200:
+                        for item in tr.json().get("data", []):
+                            tid = f"dz-{item.get('id')}"
+                            art_info = item.get("artist") or {}
+                            cand_art = art_info.get("name", "")
+                            # STRICT: Only include track if its artist matches target
+                            if tid not in seen and artist_name_matches(artist_name, cand_art):
+                                seen.add(tid)
+                                alb_info = item.get("album") or {}
+                                tracks.append(
+                                    Track(
+                                        id=tid,
+                                        title=item.get("title", "Unknown"),
+                                        location=item.get("link", ""),
+                                        artist=cand_art,
+                                        album=alb_info.get("title", ""),
+                                        duration=float(item.get("duration", 0)),
+                                        source="deezer",
+                                        cover_url=alb_info.get("cover_medium")
+                                        or alb_info.get("cover", ""),
                                     )
+                                )
+
+                # If top tracks are limited (< 15), augment with tracks from albums
+                if len(tracks) < 15:
+                    album_track_tasks = []
+                    for ar in album_resps:
+                        if not isinstance(ar, Exception) and ar.status_code == 200:
+                            for alb in ar.json().get("data", [])[:3]:
+                                alb_id = alb.get("id")
+                                if alb_id:
+                                    album_track_tasks.append(
+                                        client.get(f"https://api.deezer.com/album/{alb_id}/tracks")
+                                    )
+                    if album_track_tasks:
+                        alb_tr_resps = await asyncio.gather(
+                            *album_track_tasks, return_exceptions=True
+                        )
+                        for atr in alb_tr_resps:
+                            if not isinstance(atr, Exception) and atr.status_code == 200:
+                                for item in atr.json().get("data", []):
+                                    tid = f"dz-{item.get('id')}"
+                                    art_info = item.get("artist") or {}
+                                    cand_art = art_info.get("name", "")
+                                    if tid not in seen and artist_name_matches(
+                                        artist_name, cand_art
+                                    ):
+                                        seen.add(tid)
+                                        alb_info = item.get("album") or {}
+                                        tracks.append(
+                                            Track(
+                                                id=tid,
+                                                title=item.get("title", "Unknown"),
+                                                location=item.get("link", ""),
+                                                artist=cand_art,
+                                                album=alb_info.get("title", ""),
+                                                duration=float(item.get("duration", 0)),
+                                                source="deezer",
+                                                cover_url=alb_info.get("cover_medium")
+                                                or alb_info.get("cover", ""),
+                                            )
+                                        )
 
             # 2. From general track search, keep tracks where artist name matches
             if not isinstance(track_resp, Exception) and track_resp.status_code == 200:
-                clean_target = _normalize_for_match(artist_name)
                 for item in track_resp.json().get("data", []):
                     tid = f"dz-{item.get('id')}"
-                    cand_artist = _normalize_for_match((item.get("artist") or {}).get("name", ""))
-                    if clean_target in cand_artist and tid not in seen:
+                    art_info = item.get("artist") or {}
+                    cand_art = art_info.get("name", "")
+                    if tid not in seen and artist_name_matches(artist_name, cand_art):
                         seen.add(tid)
-                        art_info = item.get("artist") or {}
                         alb_info = item.get("album") or {}
                         tracks.append(
                             Track(
                                 id=tid,
                                 title=item.get("title", "Unknown"),
                                 location=item.get("link", ""),
-                                artist=art_info.get("name", ""),
+                                artist=cand_art,
                                 album=alb_info.get("title", ""),
                                 duration=float(item.get("duration", 0)),
                                 source="deezer",
@@ -220,8 +311,9 @@ class DeezerProvider:
                             )
                         )
 
-            self._cache[cache_key] = tracks
-            return tracks
+            result = tracks[: max(limit, 30)]
+            self._cache[cache_key] = result
+            return result
         except Exception as exc:
             logger.error("Deezer search_by_artist error: %s", exc)
             return []

@@ -151,6 +151,23 @@ def test_artist_query_parsing():
     assert extract_artist_name("Trần Duy Hưng") == "Trần Duy Hưng"
 
 
+def test_artist_name_matches():
+    from orpheus.resolver import artist_name_matches
+
+    assert artist_name_matches("Huong Ly", "Huong Ly") is True
+    assert artist_name_matches("Huong Ly", "Hương Ly") is True
+    assert artist_name_matches("Huong Ly", "Hương Ly Official") is True
+    assert artist_name_matches("Huong Ly", "Huong Ly, Duy Dong") is True
+    assert artist_name_matches("DangRangTo", "Dangrangto") is True
+    assert artist_name_matches("DangRangTo", "Đặng Rạng Tộ") is True
+
+    # Rejection of fuzzy unrelated names
+    assert artist_name_matches("Huong Ly", "Jungle") is False
+    assert artist_name_matches("Huong Ly", "Hyolyn") is False
+    assert artist_name_matches("Huong Ly", "Young Fly") is False
+    assert artist_name_matches("Cam", "Camila Cabello") is False
+
+
 def test_deezer_provider_search_by_artist():
     async def run():
         mock_client = AsyncMock(spec=httpx.AsyncClient)
@@ -185,6 +202,90 @@ def test_deezer_provider_search_by_artist():
         assert len(tracks) == 1
         assert tracks[0].title == "Trần Duy Hưng"
         assert tracks[0].artist == "Dangrangto"
+
+    asyncio.run(run())
+
+
+def test_deezer_provider_search_by_artist_rejects_unrelated_fuzzy_artists():
+    async def run():
+        mock_client = AsyncMock(spec=httpx.AsyncClient)
+        mock_client.is_closed = False
+
+        async def fake_get(url):
+            resp = AsyncMock(spec=httpx.Response)
+            resp.status_code = 200
+            if "search/artist" in url:
+                # Deezer fuzzy search returns Huong Ly, Jungle, and Hyolyn
+                resp.json.return_value = {
+                    "data": [
+                        {"id": 10475653, "name": "Huong Ly"},
+                        {"id": 436163, "name": "Jungle"},
+                        {"id": 5554163, "name": "Hyolyn"},
+                    ]
+                }
+            elif "artist/10475653/top" in url:
+                resp.json.return_value = {
+                    "data": [
+                        {
+                            "id": 101,
+                            "title": "Vui Lắm Nha",
+                            "artist": {"name": "Huong Ly"},
+                            "album": {"title": "Vui Lắm Nha", "cover_medium": ""},
+                            "duration": 180,
+                            "link": "https://deezer.com/track/101",
+                        }
+                    ]
+                }
+            elif "artist/436163/top" in url:
+                # Jungle tracks should NEVER be queried or included
+                resp.json.return_value = {
+                    "data": [
+                        {
+                            "id": 202,
+                            "title": "Back On 74",
+                            "artist": {"name": "Jungle"},
+                            "album": {"title": "Volcano", "cover_medium": ""},
+                            "duration": 210,
+                            "link": "https://deezer.com/track/202",
+                        }
+                    ]
+                }
+            elif "albums" in url:
+                resp.json.return_value = {"data": []}
+            elif "search?q=" in url:
+                resp.json.return_value = {
+                    "data": [
+                        {
+                            "id": 102,
+                            "title": "Thiệp Hồng Sai Tên",
+                            "artist": {"name": "Huong Ly"},
+                            "album": {"title": "Single", "cover_medium": ""},
+                            "duration": 220,
+                            "link": "https://deezer.com/track/102",
+                        },
+                        {
+                            "id": 303,
+                            "title": "Unholy",
+                            "artist": {"name": "Sam Smith"},
+                            "album": {"title": "Gloria", "cover_medium": ""},
+                            "duration": 150,
+                            "link": "https://deezer.com/track/303",
+                        },
+                    ]
+                }
+            return resp
+
+        mock_client.get = fake_get
+        provider = DeezerProvider(client=mock_client)
+        tracks = await provider.search_by_artist("Huong Ly")
+
+        # Must only contain Huong Ly tracks
+        assert len(tracks) == 2
+        assert all(t.artist == "Huong Ly" for t in tracks)
+        assert [t.title for t in tracks] == ["Vui Lắm Nha", "Thiệp Hồng Sai Tên"]
+        # Jungle and Sam Smith must be completely absent
+        assert not any("Jungle" in t.artist for t in tracks)
+        assert not any("Back On 74" in t.title for t in tracks)
 
     asyncio.run(run())
 
