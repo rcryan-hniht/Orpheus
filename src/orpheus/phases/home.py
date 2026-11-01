@@ -3,7 +3,7 @@ from __future__ import annotations
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Center, Middle
+from textual.containers import Center, Vertical
 from textual.screen import Screen
 from textual.widgets import Static
 
@@ -12,14 +12,15 @@ from orpheus.title import AsciiTitle
 
 
 class ShortcutBar(Static):
-    """Dynamic minimalist bottom/central shortcut bar."""
+    """Dynamic minimalist bottom shortcut bar."""
 
     DEFAULT_CSS = """
     ShortcutBar {
+        dock: bottom;
         width: 100%;
-        height: 3;
+        height: 1;
+        margin-bottom: 1;
         content-align: center middle;
-        margin-top: 1;
         background: transparent;
     }
     """
@@ -40,18 +41,20 @@ class ShortcutBar(Static):
         self.is_playing = is_playing
         self.refresh()
 
-    def _get_accent(self) -> str:
+    def _get_colors(self) -> tuple[str, str]:
+        accent = self.accent_color
+        dim = "#a0a0a0"
         try:
             if hasattr(self.app, "current_theme") and self.app.current_theme:
-                theme_accent = getattr(self.app.current_theme, "accent", None)
+                theme = self.app.current_theme
+                is_dark = getattr(theme, "dark", True)
+                theme_accent = getattr(theme, "accent", None) or getattr(theme, "primary", None)
                 if theme_accent:
-                    return str(theme_accent)
-                theme_primary = getattr(self.app.current_theme, "primary", None)
-                if theme_primary:
-                    return str(theme_primary)
+                    accent = str(theme_accent)
+                dim = "#a0a0a0" if is_dark else "#555555"
         except Exception:
             pass
-        return self.accent_color
+        return accent, dim
 
     def get_items(self) -> list[tuple[str, str]]:
         if self.is_playing:
@@ -76,13 +79,13 @@ class ShortcutBar(Static):
 
     def render(self) -> Text:
         text = Text()
-        accent = self._get_accent()
+        accent, dim = self._get_colors()
         items = self.get_items()
         for i, (bracket, label) in enumerate(items):
             text.append(bracket[0], style=f"bold {accent}")
             text.append(bracket[1:-1], style=f"bold {accent}")
             text.append(bracket[-1], style=f"bold {accent}")
-            text.append(f" {label}", style="#a0a0a0")
+            text.append(f" {label}", style=dim)
             if i < len(items) - 1:
                 text.append("    ")
         return text
@@ -114,12 +117,34 @@ class HomeScreen(Screen):
         background: transparent;
     }
 
-    #home-center {
+    #home-container {
         layer: top;
         width: 100%;
         height: 100%;
         background: transparent;
+    }
+
+    #home-title-box {
+        width: 100%;
+        height: 1fr;
         align: center middle;
+        background: transparent;
+    }
+
+    #home-title {
+        width: 100%;
+        height: 6;
+        content-align: center middle;
+        background: transparent;
+    }
+
+    #home-shortcuts {
+        dock: bottom;
+        width: 100%;
+        height: 1;
+        margin-bottom: 1;
+        content-align: center middle;
+        background: transparent;
     }
     """
 
@@ -133,10 +158,10 @@ class HomeScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield MatrixRain(id="home-matrix")
-        with Middle(id="home-center"):
-            with Center():
+        with Vertical(id="home-container"):
+            with Center(id="home-title-box"):
                 yield AsciiTitle(id="home-title")
-                yield ShortcutBar(id="home-shortcuts")
+            yield ShortcutBar(id="home-shortcuts")
 
     def set_playing_state(self, is_playing: bool) -> None:
         try:

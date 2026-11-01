@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/phases/home.py": {
-    "mtime": 1793552630.2968118,
-    "seen": 1793553069.3239796,
-    "ast_hash": "d5ae83fd7377194825567350d1ec1853",
+    "mtime": 1793556090.8784351,
+    "seen": 1793556110.1660745,
+    "ast_hash": "b2a8423ec1e23c15bb40648cdcb163d6",
     "semantic_hash": ""
   },
   "src/orpheus/phases/now_playing.py": {
@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/title.py": {
-    "mtime": 1793555557.0348015,
-    "seen": 1793555581.2009053,
-    "ast_hash": "3683b79f91a03e6d3d4637cfaf8f8c60",
+    "mtime": 1793555980.3922343,
+    "seen": 1793556110.1661088,
+    "ast_hash": "21bf170952bc8163e4e049bf7adbb534",
     "semantic_hash": ""
   },
   "tests/test_albums.py": {
@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "tests/test_visuals.py": {
-    "mtime": 1793553772.9359,
-    "seen": 1793553812.6058304,
-    "ast_hash": "ca19f1e235fd91b138bc53e8348f0bf5",
+    "mtime": 1793556090.8784351,
+    "seen": 1793556110.1661396,
+    "ast_hash": "7e1efff71c7b9596da21978e69c66578",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-11-01-orpheus-ui-redesign.md": {

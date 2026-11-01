@@ -83,18 +83,32 @@ class AsciiTitle(Widget):
         self._frame = (self._frame + 1) % 100
         self.refresh()
 
-    def _get_accent(self) -> str:
+    def _get_palette(self) -> tuple[str, str, str, str]:
+        accent = self.accent_color
+        highlight = "bold #ffffff"
+        mid = f"bold {accent}"
+        base = f"{accent}"
         try:
             if hasattr(self.app, "current_theme") and self.app.current_theme:
-                theme_accent = getattr(self.app.current_theme, "accent", None)
+                theme = self.app.current_theme
+                is_dark = getattr(theme, "dark", True)
+                theme_accent = getattr(theme, "accent", None) or getattr(theme, "primary", None)
                 if theme_accent:
-                    return str(theme_accent)
-                theme_primary = getattr(self.app.current_theme, "primary", None)
-                if theme_primary:
-                    return str(theme_primary)
+                    accent = str(theme_accent)
+                theme_fg = getattr(theme, "foreground", None)
+                theme_sec = getattr(theme, "secondary", None)
+                if is_dark:
+                    highlight = "bold #ffffff"
+                    mid = f"bold {accent}"
+                    base = f"{accent}"
+                else:
+                    # Light theme: use dark contrast color, never #ffffff which disappears!
+                    highlight = f"bold {theme_sec or theme_fg or '#000000'}"
+                    mid = f"bold {accent}"
+                    base = f"{accent}"
         except Exception:
             pass
-        return self.accent_color
+        return accent, highlight, mid, base
 
     def render_frame(self, width: int = 80) -> str:
         lines = get_title_lines(self.animation, self._frame, self.accent_color)
@@ -102,7 +116,7 @@ class AsciiTitle(Widget):
         return "\n".join(centered_lines)
 
     def render(self) -> Text:
-        accent = self._get_accent()
+        accent, highlight, mid, base = self._get_palette()
         style_lower = self.animation.lower()
         text = Text()
 
@@ -115,19 +129,19 @@ class AsciiTitle(Widget):
                 if style_lower == "pulse":
                     phase = (col_idx - self._frame * 2) % 36
                     if phase < 5:
-                        ch_style = "bold #ffffff"
+                        ch_style = highlight
                     elif phase < 10:
-                        ch_style = f"bold {accent}"
+                        ch_style = mid
                     else:
-                        ch_style = f"{accent}"
+                        ch_style = base
                 elif style_lower == "wave":
                     wave_val = math.sin((col_idx * 0.25) + (self._frame * 0.2))
                     if wave_val > 0.4:
-                        ch_style = "bold #ffffff"
+                        ch_style = highlight
                     elif wave_val > -0.2:
-                        ch_style = f"bold {accent}"
+                        ch_style = mid
                     else:
-                        ch_style = f"{accent}"
+                        ch_style = base
                 else:
                     ch_style = f"bold {accent}"
 
