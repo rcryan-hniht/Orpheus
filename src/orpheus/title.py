@@ -106,6 +106,18 @@ class AsciiTitle(Widget):
         style_lower = self.animation.lower()
         text = Text()
 
+        is_dark = True
+        fg_color = "#ffffff"
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme = self.app.current_theme
+                is_dark = getattr(theme, "dark", True)
+                if not is_dark:
+                    fg_color = str(getattr(theme, "foreground", "#0b2545"))
+        except Exception:
+            pass
+        highlight_style = "bold #ffffff" if is_dark else f"bold {fg_color}"
+
         for row_idx, line in enumerate(RAW_TITLE_LINES):
             for col_idx, ch in enumerate(line):
                 if ch == " ":
@@ -115,7 +127,7 @@ class AsciiTitle(Widget):
                 if style_lower == "pulse":
                     phase = (col_idx - self._frame * 2) % 36
                     if phase < 5:
-                        ch_style = "bold #ffffff"
+                        ch_style = highlight_style
                     elif phase < 10:
                         ch_style = f"bold {accent}"
                     else:
@@ -123,7 +135,7 @@ class AsciiTitle(Widget):
                 elif style_lower == "wave":
                     wave_val = math.sin((col_idx * 0.25) + (self._frame * 0.2))
                     if wave_val > 0.4:
-                        ch_style = "bold #ffffff"
+                        ch_style = highlight_style
                     elif wave_val > -0.2:
                         ch_style = f"bold {accent}"
                     else:

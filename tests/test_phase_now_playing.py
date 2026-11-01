@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 from orpheus.phases.now_playing import (
     AlbumArtWidget,
+    CavaVisualizer,
     NowPlayingFooter,
     NowPlayingScreen,
     format_progress_bar,
@@ -158,5 +159,84 @@ def test_now_playing_actions_await_app_methods():
 
         await screen.action_toggle_karaoke()
         fake_app.action_karaoke.assert_awaited_once()
+
+    asyncio.run(run())
+
+
+def test_cava_visualizer_states():
+    cava = CavaVisualizer(num_bars=24)
+    # 1. Idle state
+    idle_text = cava.render().plain
+    assert len(idle_text) == 24
+    assert idle_text == " " * 24
+
+    # 2. Playing state
+    cava.set_playback(is_playing=True, is_paused=False)
+    for _ in range(5):
+        cava._tick()
+    playing_text = cava.render().plain
+    assert len(playing_text) == 24
+    assert any(ch in CavaVisualizer.BARS[1:] for ch in playing_text)
+
+    # 3. Paused state
+    cava.set_playback(is_playing=True, is_paused=True)
+    for _ in range(3):
+        cava._tick()
+    paused_text = cava.render().plain
+    assert len(paused_text) == 24
+
+    # 4. Reset
+    cava.reset()
+    assert all(h == 0.0 for h in cava._heights)
+
+
+def test_now_playing_compose_includes_cava_and_no_vol():
+    import asyncio
+
+    from textual.app import App
+
+    from orpheus.models import PlaybackState
+
+    class TestApp(App):
+        def on_mount(self):
+            self.push_screen(NowPlayingScreen())
+
+    async def run():
+        app = TestApp()
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+
+            # Verify widget presence and hierarchy
+            left_col = screen.query_one("#left-col")
+            children_ids = [c.id for c in left_col.children]
+
+            assert "progress-container" in children_ids
+            assert "np-cava" in children_ids
+            assert "badges-bar" in children_ids
+
+            # Verify np-cava is directly after progress-container and before badges-bar
+            prog_idx = children_ids.index("progress-container")
+            cava_idx = children_ids.index("np-cava")
+            badges_idx = children_ids.index("badges-bar")
+            assert prog_idx < cava_idx < badges_idx
+
+            # Update playback state
+            state = PlaybackState(
+                paused=False, position=45.0, duration=180.0, volume=85.0, idle=False
+            )
+            screen.update_playback_state(state)
+            await pilot.pause()
+
+            badges_text = screen.query_one("#badges-bar").render()
+            badges_str = str(badges_text)
+            assert "Vol:" not in badges_str
+            assert "▶" in badges_str
+            assert "[Repeat: Off]" in badges_str
+            assert "[Karaoke: Off]" in badges_str
+
+            cava_widget = screen.query_one("#np-cava", CavaVisualizer)
+            assert cava_widget.is_playing is True
+            assert cava_widget.is_paused is False
 
     asyncio.run(run())

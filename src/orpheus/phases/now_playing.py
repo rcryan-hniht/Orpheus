@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import time
 from typing import Any
 
@@ -250,6 +251,144 @@ class SyncedLyricsWidget(Static):
         return text
 
 
+class CavaVisualizer(Static):
+    """Dynamic Cava-like audio spectrum visualizer bar placed under the timeline."""
+
+    BARS = (" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█")
+
+    DEFAULT_CSS = """
+    CavaVisualizer {
+        height: 1;
+        width: 100%;
+        content-align: center middle;
+        margin-top: 1;
+        background: transparent;
+    }
+    """
+
+    def __init__(
+        self,
+        num_bars: int = 32,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+    ) -> None:
+        super().__init__(name=name, id=id, classes=classes)
+        self.num_bars = num_bars
+        self.is_playing = False
+        self.is_paused = False
+        self._heights: list[float] = [0.0] * num_bars
+        self._t: float = 0.0
+        self._timer = None
+
+    def on_mount(self) -> None:
+        self._timer = self.set_interval(0.08, self._tick)
+
+    def set_playback(self, is_playing: bool, is_paused: bool) -> None:
+        was_playing = self.is_playing and not self.is_paused
+        self.is_playing = is_playing
+        self.is_paused = is_paused
+        now_playing = self.is_playing and not self.is_paused
+        if was_playing != now_playing:
+            self.refresh()
+
+    def reset(self) -> None:
+        self._heights = [0.0] * self.num_bars
+        self._t = 0.0
+        self.refresh()
+
+    def _tick(self) -> None:
+        if not self.is_playing:
+            changed = False
+            for i in range(self.num_bars):
+                if self._heights[i] > 0.0:
+                    self._heights[i] = max(0.0, self._heights[i] - 0.8)
+                    changed = True
+            if changed:
+                self.refresh()
+            return
+
+        if self.is_paused:
+            changed = False
+            for i in range(self.num_bars):
+                target = 0.8 if (i % 2 == 0) else 0.4
+                if abs(self._heights[i] - target) > 0.1:
+                    if self._heights[i] > target:
+                        self._heights[i] = max(target, self._heights[i] - 0.6)
+                    else:
+                        self._heights[i] = min(target, self._heights[i] + 0.3)
+                    changed = True
+            if changed:
+                self.refresh()
+            return
+
+        self._t += 0.08
+        t = self._t
+        # 124 BPM bass rhythm pulse
+        beat = (max(0.0, math.sin(t * 2.06 * math.pi * 2))) ** 6
+
+        for i in range(self.num_bars):
+            norm = i / max(1, self.num_bars - 1)
+            bass = beat * math.exp(-4.2 * norm) * 7.6
+            mids = (math.sin(t * 4.6 + i * 0.42) * 0.5 + 0.5) * math.sin(norm * math.pi) * 5.4
+            treble = (math.cos(t * 8.2 - i * 0.75) * 0.5 + 0.5) * (norm**1.35) * 4.0
+            jitter = (math.sin(t * 16.0 + i * 2.1) * 0.5 + 0.5) * 1.2
+
+            target = max(0.4, min(8.0, bass + mids + treble + jitter))
+            if target > self._heights[i]:
+                self._heights[i] = target
+            else:
+                self._heights[i] = max(0.0, self._heights[i] - 0.7)
+
+        self.refresh()
+
+    def _get_theme_styles(self) -> tuple[str, str, bool]:
+        accent = "#00ffcc"
+        fg = "#ffffff"
+        is_dark = True
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                theme = self.app.current_theme
+                is_dark = getattr(theme, "dark", True)
+                theme_accent = getattr(theme, "accent", None) or getattr(theme, "primary", None)
+                if theme_accent:
+                    accent = str(theme_accent)
+                fg = str(getattr(theme, "foreground", "#ffffff" if is_dark else "#0b2545"))
+        except Exception:
+            pass
+        return accent, fg, is_dark
+
+    def render(self) -> Text:
+        accent, fg, is_dark = self._get_theme_styles()
+        text = Text()
+
+        if not self.is_playing:
+            for _ in range(self.num_bars):
+                text.append(" ", style="dim")
+            return text
+
+        if self.is_paused:
+            for h in self._heights:
+                idx = min(8, int(round(h)))
+                text.append(self.BARS[idx], style="dim")
+            return text
+
+        peak_style = "bold #ffffff" if is_dark else f"bold {fg}"
+        for h in self._heights:
+            idx = min(8, int(round(h)))
+            char = self.BARS[idx]
+            if idx >= 7:
+                text.append(char, style=peak_style)
+            elif idx >= 4:
+                text.append(char, style=f"bold {accent}")
+            elif idx >= 1:
+                text.append(char, style=f"{accent}")
+            else:
+                text.append(char, style="dim")
+
+        return text
+
+
 class NowPlayingFooter(Static):
     """Dynamic shortcut footer for Now Playing."""
 
@@ -337,6 +476,7 @@ class NowPlayingScreen(Screen):
         padding: 0 1;
         align: center top;
         background: transparent;
+        overflow-y: hidden;
     }
 
     #right-col {
@@ -363,6 +503,14 @@ class NowPlayingScreen(Screen):
         width: 100%;
         content-align: center middle;
         color: $foreground;
+    }
+
+    #np-cava {
+        height: 1;
+        width: 100%;
+        content-align: center middle;
+        margin-top: 1;
+        background: transparent;
     }
 
     #badges-bar {
@@ -407,6 +555,7 @@ class NowPlayingScreen(Screen):
                 )
                 yield Static(artist_album, id="track-artist-album")
                 yield Static("", id="progress-container")
+                yield CavaVisualizer(id="np-cava")
                 yield Static("", id="badges-bar")
 
             with Vertical(id="right-col"):
@@ -430,6 +579,8 @@ class NowPlayingScreen(Screen):
                 lyrics_w.set_loading(True)
             else:
                 lyrics_w.set_lyrics(lyrics)
+            cava_w = self.query_one("#np-cava", CavaVisualizer)
+            cava_w.reset()
         except Exception:
             pass
 
@@ -447,9 +598,12 @@ class NowPlayingScreen(Screen):
             repeat_badge = f"[Repeat: {self.repeat_mode.capitalize()}]"
             karaoke_badge = f"[Karaoke: {'On' if self.karaoke_enabled else 'Off'}]"
             state_icon = "⏸" if state.paused else "▶"
-            vol = int(state.volume)
-            badges_text = f"{state_icon}   {repeat_badge}   {karaoke_badge}   Vol: {vol}%"
+            badges_text = f"{state_icon}   {repeat_badge}   {karaoke_badge}"
             self.query_one("#badges-bar", Static).update(badges_text)
+
+            cava_w = self.query_one("#np-cava", CavaVisualizer)
+            is_active = not state.idle and (state.position > 0 or not state.paused)
+            cava_w.set_playback(is_playing=is_active, is_paused=state.paused)
 
             lyrics_w = self.query_one("#np-lyrics", SyncedLyricsWidget)
             lyrics_w.set_position(pos)

@@ -121,6 +121,14 @@ class MatrixRain(Widget):
         # Build grid
         grid: list[list[tuple[str, str]]] = [[(" ", "default") for _ in range(w)] for _ in range(h)]
 
+        is_dark = True
+        try:
+            if hasattr(self.app, "current_theme") and self.app.current_theme:
+                is_dark = getattr(self.app.current_theme, "dark", True)
+        except Exception:
+            pass
+        head_style = "bold #ffffff" if is_dark else "bold #003311"
+
         for col in self.columns:
             if not col.active or col.x >= w:
                 continue
@@ -128,8 +136,8 @@ class MatrixRain(Widget):
             for y, ch in col.tail:
                 if 0 <= y < h:
                     if y == int_head:
-                        # Head character: bright glowing white
-                        style = "bold #ffffff"
+                        # Head character: bright glowing white on dark, dark forest green on light
+                        style = head_style
                     elif y >= int_head - 2:
                         # Upper tail: electric neon green
                         style = "bold #00ff66"
