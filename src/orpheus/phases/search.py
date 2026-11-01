@@ -14,7 +14,12 @@ from textual.widgets import DataTable, Input, Static
 
 from orpheus.albums import AlbumsModal
 from orpheus.models import Track
-from orpheus.resolver import DeezerProvider, rank_tracks_by_query
+from orpheus.resolver import (
+    DeezerProvider,
+    extract_artist_name,
+    is_artist_query,
+    rank_tracks_by_query,
+)
 
 
 class SearchStatusBar(Static):
@@ -141,15 +146,19 @@ class SearchScreen(Screen):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="search-bar-box"):
-            yield Input(placeholder="Type song or artist to search Deezer...", id="search-input")
+            yield Input(
+                placeholder="Search songs or @artist to filter by artist...", id="search-input"
+            )
 
         with Horizontal(id="search-panes"):
             with Vertical(id="online-pane", classes="search-pane"):
-                yield Static("── ONLINE SEARCH (DEEZER) ──", classes="pane-header")
+                yield Static(
+                    "── ONLINE SEARCH (DEEZER) ──", id="online-header", classes="pane-header"
+                )
                 yield DataTable(id="online-table")
 
             with Vertical(id="local-pane", classes="search-pane"):
-                yield Static("── LOCAL LIBRARY ──", classes="pane-header")
+                yield Static("── LOCAL LIBRARY ──", id="local-header", classes="pane-header")
                 yield DataTable(id="local-table")
 
         yield SearchStatusBar(id="search-status")
@@ -212,10 +221,20 @@ class SearchScreen(Screen):
                 event.stop()
                 inp.focus()
 
-    def _populate_local_table(self) -> None:
+    def _populate_local_table(self, query: str = "") -> None:
         table = self.query_one("#local-table", DataTable)
         table.clear()
-        for t in self.local_tracks:
+        tracks = self.local_tracks
+        if query:
+            if is_artist_query(query):
+                art_name = extract_artist_name(query).lower()
+                tracks = [t for t in tracks if art_name in t.artist.lower()]
+            else:
+                q_lower = query.lower()
+                tracks = [
+                    t for t in tracks if q_lower in t.title.lower() or q_lower in t.artist.lower()
+                ]
+        for t in tracks:
             dur = int(t.duration) if t.duration else 0
             dur_str = f"{dur // 60}:{dur % 60:02d}" if t.duration else "--:--"
             table.add_row(t.title, t.artist, dur_str, key=t.id)
@@ -231,16 +250,29 @@ class SearchScreen(Screen):
             0.4, lambda: asyncio.create_task(self._do_search(query, gen))
         )
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        query = event.value.strip()
+        if not query:
+            return
+
+        if self._debounce_timer:
+            self._debounce_timer.cancel()
+            self._debounce_timer = None
+
         table = self._get_active_table()
-        if table.row_count > 0:
-            track, queue, history = self._get_selected_track_and_context(row_idx=0)
-            if track and hasattr(self.app, "load_playlist_and_play"):
-                self.app.load_playlist_and_play(track, queue, history)
-            elif track and hasattr(self.app, "play_resolved_track"):
-                self.app.play_resolved_track(track)
-            else:
-                table.focus()
+        # If table is empty or search is still pending, execute search immediately
+        if table.row_count == 0 or not self._online_results:
+            self._search_generation += 1
+            gen = self._search_generation
+            await self._do_search(query, gen)
+
+        track, queue, history = self._get_selected_track_and_context(row_idx=0)
+        if track and hasattr(self.app, "load_playlist_and_play"):
+            self.app.load_playlist_and_play(track, queue, history)
+        elif track and hasattr(self.app, "play_resolved_track"):
+            self.app.play_resolved_track(track)
+        else:
+            table.focus()
 
     async def _do_search(self, query: str, gen: int) -> None:
         if gen != self._search_generation or not self.is_mounted:
@@ -248,15 +280,34 @@ class SearchScreen(Screen):
         if not query:
             try:
                 self.query_one("#online-table", DataTable).clear()
+                self.query_one("#online-header", Static).update("── ONLINE SEARCH (DEEZER) ──")
             except Exception:
                 pass
             self._online_results = []
+            self._populate_local_table()
             return
 
-        raw_tracks = await self.deezer_provider.search(query, limit=25)
+        if is_artist_query(query):
+            artist_name = extract_artist_name(query)
+            try:
+                self.query_one("#online-header", Static).update(
+                    f"── ARTIST SEARCH: @{artist_name.upper()} (DEEZER) ──"
+                )
+            except Exception:
+                pass
+            tracks = await self.deezer_provider.search_by_artist(artist_name, limit=30)
+            self._populate_local_table(query)
+        else:
+            try:
+                self.query_one("#online-header", Static).update("── ONLINE SEARCH (DEEZER) ──")
+            except Exception:
+                pass
+            raw_tracks = await self.deezer_provider.search(query, limit=25)
+            tracks = rank_tracks_by_query(raw_tracks, query)
+            self._populate_local_table(query)
+
         if gen != self._search_generation or not self.is_mounted:
             return
-        tracks = rank_tracks_by_query(raw_tracks, query)
         self._online_results = tracks
         try:
             table = self.query_one("#online-table", DataTable)
@@ -265,6 +316,8 @@ class SearchScreen(Screen):
                 dur = int(t.duration) if t.duration else 0
                 dur_str = f"{dur // 60}:{dur % 60:02d}" if t.duration else "--:--"
                 table.add_row(t.title, t.artist, t.album, dur_str, key=t.id)
+            if tracks:
+                table.cursor_coordinate = Coordinate(0, 0)
         except Exception:
             pass
 
@@ -335,12 +388,28 @@ class SearchScreen(Screen):
             self.app.push_screen(AlbumsModal(store=store, target_track=track))
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
-        track, queue, history = self._get_selected_track_and_context()
+        row_key = event.row_key.value if hasattr(event.row_key, "value") else str(event.row_key)
+        track, queue, history = self._get_track_and_context_by_key(row_key)
+        if not track:
+            track, queue, history = self._get_selected_track_and_context()
         if track:
             if hasattr(self.app, "load_playlist_and_play"):
                 self.app.load_playlist_and_play(track, queue, history)
             elif hasattr(self.app, "play_resolved_track"):
                 self.app.play_resolved_track(track)
+
+    def _get_track_and_context_by_key(
+        self, row_key: str
+    ) -> tuple[Track | None, list[Track], list[Track]]:
+        use_local = self._active_pane == "local" and self.split_view
+        track_list = self.local_tracks if use_local else self._online_results
+        for i, t in enumerate(track_list):
+            if t.id == row_key:
+                selected = t
+                queue = list(track_list[i + 1 :])
+                history = list(track_list[:i])
+                return selected, queue, history
+        return None, [], []
 
     def _get_selected_track_and_context(
         self, row_idx: int | None = None

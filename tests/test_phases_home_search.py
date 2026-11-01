@@ -113,3 +113,51 @@ def test_search_screen_playlist_context():
     assert selected == tracks[1]
     assert queue == [tracks[2]]
     assert history == [tracks[0]]
+
+
+def test_search_screen_artist_query_and_enter_submission():
+    from unittest.mock import AsyncMock
+
+    from textual.app import App
+    from textual.widgets import Input
+
+    target_track = Track("dz-11", "Trần Duy Hưng", "https://deezer.com/11", artist="Dangrangto")
+
+    class DummyProvider:
+        def __init__(self):
+            self.search_by_artist = AsyncMock(return_value=[target_track])
+            self.search = AsyncMock(return_value=[])
+
+    provider = DummyProvider()
+    screen = SearchScreen(deezer_provider=provider)
+
+    class TestApp(App):
+        def on_mount(self):
+            self.push_screen(screen)
+
+    import asyncio
+
+    played_tracks = []
+
+    class MockApp(TestApp):
+        def load_playlist_and_play(self, track, queue, history):
+            played_tracks.append((track, queue, history))
+
+    async def run():
+        app = MockApp()
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            inp = screen.query_one("#search-input", Input)
+            inp.value = "@artist DangRangTo"
+
+            # Submit input (simulates pressing Enter on search bar)
+            await screen.on_input_submitted(Input.Submitted(inp, value="@artist DangRangTo"))
+            await pilot.pause()
+
+            # Verify provider search_by_artist was called
+            provider.search_by_artist.assert_awaited_once_with("DangRangTo", limit=30)
+            # Verify immediate transition to play top track
+            assert len(played_tracks) == 1
+            assert played_tracks[0][0] == target_track
+
+    asyncio.run(run())

@@ -4,7 +4,12 @@ from unittest.mock import AsyncMock, patch
 import httpx
 
 from orpheus.models import Track
-from orpheus.resolver import AudioResolver, DeezerProvider
+from orpheus.resolver import (
+    AudioResolver,
+    DeezerProvider,
+    extract_artist_name,
+    is_artist_query,
+)
 
 
 def test_deezer_provider_search():
@@ -125,5 +130,105 @@ def test_audio_resolver_fallback_to_jamendo_when_yt_fails():
             stream_url, source_name = await resolver.resolve_stream_url(track)
             assert stream_url == "https://jamendo.com/audio.mp3"
             assert source_name == "jamendo"
+
+    asyncio.run(run())
+
+
+def test_artist_query_parsing():
+    assert is_artist_query("@artist DangRangTo") is True
+    assert extract_artist_name("@artist DangRangTo") == "DangRangTo"
+
+    assert is_artist_query("@DangRangTo") is True
+    assert extract_artist_name("@DangRangTo") == "DangRangTo"
+
+    assert is_artist_query("@artist:DangRangTo") is True
+    assert extract_artist_name("@artist:DangRangTo") == "DangRangTo"
+
+    assert is_artist_query("DangRangTo @artist") is True
+    assert extract_artist_name("DangRangTo @artist") == "DangRangTo"
+
+    assert is_artist_query("Trần Duy Hưng") is False
+    assert extract_artist_name("Trần Duy Hưng") == "Trần Duy Hưng"
+
+
+def test_deezer_provider_search_by_artist():
+    async def run():
+        mock_client = AsyncMock(spec=httpx.AsyncClient)
+        mock_client.is_closed = False
+
+        async def fake_get(url):
+            resp = AsyncMock(spec=httpx.Response)
+            resp.status_code = 200
+            if "search/artist" in url:
+                resp.json.return_value = {"data": [{"id": 111, "name": "Dangrangto"}]}
+            elif "artist/111/top" in url:
+                resp.json.return_value = {
+                    "data": [
+                        {
+                            "id": 999,
+                            "title": "Trần Duy Hưng",
+                            "artist": {"name": "Dangrangto"},
+                            "album": {"title": "Single", "cover_medium": ""},
+                            "duration": 195,
+                            "link": "https://deezer.com/track/999",
+                        }
+                    ]
+                }
+            elif "search?q=" in url:
+                resp.json.return_value = {"data": []}
+            return resp
+
+        mock_client.get = fake_get
+        provider = DeezerProvider(client=mock_client)
+        tracks = await provider.search_by_artist("Dangrangto")
+
+        assert len(tracks) == 1
+        assert tracks[0].title == "Trần Duy Hưng"
+        assert tracks[0].artist == "Dangrangto"
+
+    asyncio.run(run())
+
+
+def test_audio_resolver_prioritizes_artist_title_queries():
+    async def run():
+        track = Track(
+            id="dz-789",
+            title="Trần Duy Hưng",
+            artist="Dangrangto",
+            duration=195,
+            location="",
+            source="deezer",
+        )
+
+        searched_queries = []
+
+        async def fake_candidates(query, limit=8):
+            searched_queries.append(query)
+            if "Dangrangto Trần Duy Hưng" in query:
+                return [
+                    {
+                        "title": "TRẦN DUY HƯNG - DANGRANGTO x TEUYUNGBOY (PROD. DONAL)",
+                        "duration": 193,
+                        "channel": "NCT Official",
+                        "url": "https://youtube.com/watch?v=hitstory",
+                        "id": "hitstory",
+                    }
+                ]
+            return []
+
+        resolver = AudioResolver()
+        with (
+            patch.object(resolver, "_fetch_youtube_candidates", new=fake_candidates),
+            patch.object(
+                resolver,
+                "_extract_direct_stream_url",
+                new=AsyncMock(return_value="https://googlevideo.com/stream-tdh"),
+            ),
+        ):
+            stream_url, source = await resolver.resolve_stream_url(track)
+            assert stream_url == "https://googlevideo.com/stream-tdh"
+            assert source == "youtube"
+            # First query searched should be clean "Dangrangto Trần Duy Hưng"
+            assert searched_queries[0] == "Dangrangto Trần Duy Hưng"
 
     asyncio.run(run())

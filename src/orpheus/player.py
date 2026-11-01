@@ -24,8 +24,11 @@ class MpvPlayer:
         self._manually_stopped = False
 
     async def start(self) -> None:
-        if self._process is not None:
+        if self._process is not None and not self._disconnected and self._writer is not None:
             return
+        if self._process is not None or self._writer is not None:
+            await self.close()
+        self._disconnected = False
         self._directory = tempfile.TemporaryDirectory(prefix="orpheus-mpv-")
         socket = str(Path(self._directory.name) / "ipc.sock")
         try:

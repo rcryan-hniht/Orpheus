@@ -173,6 +173,7 @@ class OrpheusApp(App[None]):
 
     def play_resolved_track(self, track: Track) -> None:
         """Transition to Now Playing and resolve/stream audio without blocking UI."""
+        is_changing_track = self.current_track is not None and self.current_track != track
         if self.current_track and self.current_track != track:
             if not self.history or self.history[-1] != self.current_track:
                 self.history.append(self.current_track)
@@ -182,7 +183,16 @@ class OrpheusApp(App[None]):
         self.now_playing_screen.update_track(track, lyrics=None, is_loading=True)
         self.home_screen.set_playing_state(True)
         self.switch_phase("now_playing")
+        if is_changing_track and self.player:
+            self.run_worker(self._silence_player_for_new_track(), exclusive=False)
         self.run_worker(self._async_resolve_and_play(track, gen), exclusive=False)
+
+    async def _silence_player_for_new_track(self) -> None:
+        if self.player:
+            try:
+                await self.player.stop()
+            except Exception:
+                pass
 
     async def _async_resolve_and_play(self, track: Track, gen: int) -> None:
         try:
