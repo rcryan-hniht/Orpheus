@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/phases/now_playing.py": {
-    "mtime": 1793566755.8142724,
-    "seen": 1793566778.5412726,
-    "ast_hash": "7da42ddaf2facf7a30c2541f2393ae53",
+    "mtime": 1793567219.7146142,
+    "seen": 1793567288.236876,
+    "ast_hash": "0fd4c87fedb74a1e018da42aee51b492",
     "semantic_hash": ""
   },
   "src/orpheus/phases/search.py": {
@@ -294,15 +294,15 @@
     "semantic_hash": ""
   },
   "src/orpheus/cava.py": {
-    "mtime": 1793566465.93506,
-    "seen": 1793566778.5412521,
-    "ast_hash": "114ed5e462d4bf67b24850d6f363ce8b",
+    "mtime": 1793567199.0822432,
+    "seen": 1793567288.236868,
+    "ast_hash": "10e5248c9e1abab66b0af9eb474b57aa",
     "semantic_hash": ""
   },
   "tests/test_cava.py": {
-    "mtime": 1793566640.2621946,
-    "seen": 1793566778.5413115,
-    "ast_hash": "c4535d774c28b9f1cd18bbd63c26ff04",
+    "mtime": 1793567257.3672912,
+    "seen": 1793567288.2368898,
+    "ast_hash": "f9d01d8f3f77af4991e91affe30fc7f7",
     "semantic_hash": ""
   }
 }

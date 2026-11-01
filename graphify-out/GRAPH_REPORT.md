@@ -1,17 +1,17 @@
 # Graph Report - Orpheus  (2026-11-02)
 
 ## Corpus Check
-- 51 files · ~31,859 words
+- 51 files · ~31,986 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 1 file(s) not represented in the graph (top: (none) 1)
 
 ## Summary
-- 809 nodes · 1931 edges · 27 communities (21 shown, 6 thin omitted)
+- 809 nodes · 1930 edges · 26 communities (20 shown, 6 thin omitted)
 - Extraction: 78% EXTRACTED · 22% INFERRED · 0% AMBIGUOUS · INFERRED: 425 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a57d16dd`
+- Built from commit: `1aae1e51`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -20,7 +20,6 @@
 - MpvPlayer
 - ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan
 - Database
-- app.py
 - Xác minh TermMusic MVP
 - install.sh
 - OrpheusApp
@@ -71,23 +70,19 @@
 ## Import Cycles
 - None detected.
 
-## Communities (27 total, 6 thin omitted)
+## Communities (26 total, 6 thin omitted)
 
 ### Community 0 - "CavaVisualizer"
-Cohesion: 0.07
-Nodes (12): CavaReader, CavaVisualizer, NowPlayingFooter, SyncedLyricsWidget, test_cava_reader_binary_read_loop(), test_cava_reader_init(), test_cava_reader_set_bars(), test_cava_reader_start_and_stop_cleanup() (+4 more)
+Cohesion: 0.06
+Nodes (16): CavaReader, active_line(), LyricLine, parse_lrc(), CavaVisualizer, NowPlayingFooter, SyncedLyricsWidget, test_cava_reader_binary_read_loop() (+8 more)
 
 ### Community 1 - "MpvPlayer"
 Cohesion: 0.08
 Nodes (27): Global Constraints, Review Focus, Task 1: Update MpvPlayer options and timeout for yt-dlp streaming, Task 2: Update Track.playable and add Web Track Creation helper, Task 3: Integrate Web & YouTube playback and direct URL search in OrpheusApp, Task 4: Documentation, Verification, and Push, Web Audio Playback Implementation Plan, MpvPlayer (+19 more)
 
 ### Community 3 - "Database"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (39): clean_song_title(), LyricsService, match_lyric_track(), Lyrics, LyricsMatch, Track, Database, test_clean_song_title() (+31 more)
-
-### Community 4 - "app.py"
-Cohesion: 0.18
-Nodes (5): active_line(), LyricLine, parse_lrc(), SettingGroup, test_lrc_multiple_timestamps_offset_and_delay()
 
 ### Community 7 - "OrpheusApp"
 Cohesion: 0.06
@@ -118,8 +113,8 @@ Cohesion: 0.07
 Nodes (9): Task 6: User Albums / Playlists Store & Modal, AlbumsModal, AlbumStore, AlbumsView, test_album_and_track_queue_ordering(), test_album_store_crud(), test_albums_modal_colon_key_and_creation(), notify() (+1 more)
 
 ### Community 16 - "SettingsModal"
-Cohesion: 0.10
-Nodes (6): Task 5: Reusable Settings Modal Component, SettingItem, SettingsModal, SettingsView, test_setting_item_change_value(), test_settings_modal_navigation()
+Cohesion: 0.09
+Nodes (7): Task 5: Reusable Settings Modal Component, SettingGroup, SettingItem, SettingsModal, SettingsView, test_setting_item_change_value(), test_settings_modal_navigation()
 
 ### Community 17 - "test_visuals.py"
 Cohesion: 0.31
@@ -130,8 +125,8 @@ Cohesion: 0.20
 Nodes (3): ShortcutBar, test_shortcut_bar_render_idle(), test_shortcut_bar_render_playing()
 
 ### Community 19 - "__main__.py"
-Cohesion: 0.09
-Nodes (14): create_web_track(), LicensedCatalogProvider, LocalProvider, _matches(), _safe_url(), YouTubeMetadataProvider, test_catalog_rejects_non_audio_or_extraction_urls(), test_catalog_rejects_nonfinite_duration() (+6 more)
+Cohesion: 0.07
+Nodes (21): main(), create_web_track(), LicensedCatalogProvider, LocalProvider, _matches(), _safe_url(), YouTubeMetadataProvider, run_cli() (+13 more)
 
 ### Community 21 - "GlitchOverlay"
 Cohesion: 0.15
@@ -150,8 +145,8 @@ Cohesion: 0.06
 Nodes (32): PlaybackState, Separator, make_app(), MockLyricsService, MockPlayer, MockProvider, Stems, test_app_initial_phase_is_home() (+24 more)
 
 ### Community 26 - "updater.py"
-Cohesion: 0.07
-Nodes (21): main(), async_check_and_update(), find_repo_dir(), get_local_commit(), get_remote_commit(), get_remote_commit_async(), perform_update(), run_cli_update() (+13 more)
+Cohesion: 0.10
+Nodes (14): async_check_and_update(), find_repo_dir(), get_local_commit(), get_remote_commit(), get_remote_commit_async(), perform_update(), run_cli_update(), test_find_repo_dir() (+6 more)
 
 ### Community 27 - "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification"
 Cohesion: 0.14
@@ -165,15 +160,15 @@ Nodes (13): 1. Intent & Context, 2. Goals, Non-Goals & Anti-Goals, 3. Global Con
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Track` connect `Database` to `MpvPlayer`, `app.py`, `OrpheusApp`, `resolver.py`, `NowPlayingScreen`, `SearchScreen`, `AlbumsModal`, `__main__.py`, `GlitchOverlay`, `app.py`, `updater.py`?**
+- **Why does `Track` connect `Database` to `MpvPlayer`, `OrpheusApp`, `resolver.py`, `NowPlayingScreen`, `SearchScreen`, `AlbumsModal`, `SettingsModal`, `__main__.py`, `GlitchOverlay`, `app.py`?**
   _High betweenness centrality (0.258) - this node is a cross-community bridge._
 - **Are the 45 inferred relationships involving `Track` (e.g. with `Task 2: Deezer Metadata Provider & YouTube yt-dlp Audio Resolver` and `Task 2: Update Track.playable and add Web Track Creation helper`) actually correct?**
   _`Track` has 45 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `orpheus` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `CavaVisualizer` be split into smaller, more focused modules?**
-  _Cohesion score 0.07137254901960784 - nodes in this community are weakly interconnected._
-- **Why does `OrpheusApp` connect `OrpheusApp` to `MpvPlayer`, `Database`, `app.py`, `resolver.py`, `NowPlayingScreen`, `SearchScreen`, `AlbumsModal`, `SettingsModal`, `GlitchOverlay`, `app.py`, `updater.py`?**
+  _Cohesion score 0.060496067755595885 - nodes in this community are weakly interconnected._
+- **Why does `OrpheusApp` connect `OrpheusApp` to `MpvPlayer`, `Database`, `resolver.py`, `NowPlayingScreen`, `SearchScreen`, `AlbumsModal`, `SettingsModal`, `__main__.py`, `GlitchOverlay`, `app.py`?**
   _High betweenness centrality (0.129) - this node is a cross-community bridge._
 - **Are the 26 inferred relationships involving `Database` (e.g. with `Task 6: User Albums / Playlists Store & Modal` and `AlbumStore`) actually correct?**
   _`Database` has 26 INFERRED edges - model-reasoned connections that need verification._

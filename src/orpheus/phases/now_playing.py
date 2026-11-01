@@ -301,7 +301,7 @@ class CavaVisualizer(Static):
         self.is_paused = False
         self._heights: list[float] = [0.0] * num_bars
         self._timer = None
-        self._cava_reader = CavaReader(num_bars=num_bars)
+        self._cava_reader = CavaReader(num_bars=num_bars, framerate=60)
 
     @property
     def display_height(self) -> int:
@@ -318,7 +318,8 @@ class CavaVisualizer(Static):
     def on_mount(self) -> None:
         if self._cava_reader.available:
             self._cava_reader.start()
-        self._timer = self.set_interval(0.06, self._tick)
+        # Silky smooth 30 FPS animation loop
+        self._timer = self.set_interval(0.033, self._tick)
 
     def on_unmount(self) -> None:
         if self._timer:
@@ -344,20 +345,9 @@ class CavaVisualizer(Static):
 
     def _tick(self) -> None:
         H = self.display_height
-        if not self.is_playing:
+        if not self.is_playing or self.is_paused:
             changed = False
-            decay = max(0.5, H * 0.15)
-            for i in range(self.num_bars):
-                if self._heights[i] > 0.0:
-                    self._heights[i] = max(0.0, self._heights[i] - decay)
-                    changed = True
-            if changed:
-                self.refresh()
-            return
-
-        if self.is_paused:
-            changed = False
-            decay = max(0.3, H * 0.1)
+            decay = max(0.2, H * 0.08)
             for i in range(self.num_bars):
                 if self._heights[i] > 0.0:
                     self._heights[i] = max(0.0, self._heights[i] - decay)
@@ -371,14 +361,24 @@ class CavaVisualizer(Static):
         if not raw_bars or len(raw_bars) < self.num_bars:
             raw_bars = [0.0] * self.num_bars
 
-        decay = max(0.4, H * 0.12)
-        for i in range(self.num_bars):
-            val = raw_bars[i]
-            target = max(0.0, min(float(H), val * H))
-            if target > self._heights[i]:
-                self._heights[i] = target
+        # 1. Spatial smoothing: Monstercat neighbor blend across frequencies
+        n = self.num_bars
+        smooth_bars = [0.0] * n
+        for i in range(n):
+            left = raw_bars[i - 1] if i > 0 else raw_bars[i]
+            right = raw_bars[i + 1] if i < n - 1 else raw_bars[i]
+            smooth_bars[i] = left * 0.2 + raw_bars[i] * 0.6 + right * 0.2
+
+        # 2. Temporal smoothing: LERP with fast punchy attack and graceful gravity drop
+        for i in range(n):
+            target = max(0.0, min(float(H), smooth_bars[i] * H))
+            curr = self._heights[i]
+            if target > curr:
+                # Fast attack (0.68) so beats and kicks hit instantly
+                self._heights[i] = curr + (target - curr) * 0.68
             else:
-                self._heights[i] = max(0.0, self._heights[i] - decay)
+                # Eased gravity drop (0.24) so bars float down like liquid
+                self._heights[i] = max(0.0, curr + (target - curr) * 0.24)
 
         self.refresh()
 
