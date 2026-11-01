@@ -232,6 +232,15 @@ def test_cava_visualizer_states():
         assert "0b2545" not in style_str
         assert "black" not in style_str
 
+    # 6. Multi-row Cava mode
+    cava._custom_height = 5
+    cava._heights = [3.5] * 24
+    multi_row = cava.render().plain
+    lines = multi_row.split("\n")
+    assert len(lines) == 5
+    assert "█" in lines[-1]
+    assert "█" in lines[-2]
+
 
 def test_now_playing_compose_includes_cava_and_no_vol():
     import asyncio
@@ -281,5 +290,10 @@ def test_now_playing_compose_includes_cava_and_no_vol():
             cava_widget = screen.query_one("#np-cava", CavaVisualizer)
             assert cava_widget.is_playing is True
             assert cava_widget.is_paused is False
+
+            # Verify badges-bar sits closely above which key footer (gap <= 3 lines)
+            badges_y = screen.query_one("#badges-bar").region.y
+            footer_y = screen.query_one("#np-footer").region.y
+            assert footer_y - badges_y <= 3
 
     asyncio.run(run())

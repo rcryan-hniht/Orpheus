@@ -278,10 +278,12 @@ class CavaVisualizer(Static):
 
     DEFAULT_CSS = """
     CavaVisualizer {
-        height: 1;
+        height: 1fr;
+        min-height: 2;
         width: 100%;
-        content-align: center middle;
+        content-align: center bottom;
         margin-top: 1;
+        margin-bottom: 1;
         background: transparent;
     }
     """
@@ -301,6 +303,18 @@ class CavaVisualizer(Static):
         self._t: float = 0.0
         self._timer = None
 
+    @property
+    def display_height(self) -> int:
+        custom_h = getattr(self, "_custom_height", None)
+        if custom_h is not None and custom_h > 1:
+            return custom_h
+        try:
+            if self.is_mounted and self.size.height > 1:
+                return self.size.height
+        except Exception:
+            pass
+        return 1
+
     def on_mount(self) -> None:
         self._timer = self.set_interval(0.08, self._tick)
 
@@ -318,11 +332,13 @@ class CavaVisualizer(Static):
         self.refresh()
 
     def _tick(self) -> None:
+        H = self.display_height
         if not self.is_playing:
             changed = False
+            decay = max(0.5, H * 0.15)
             for i in range(self.num_bars):
                 if self._heights[i] > 0.0:
-                    self._heights[i] = max(0.0, self._heights[i] - 0.8)
+                    self._heights[i] = max(0.0, self._heights[i] - decay)
                     changed = True
             if changed:
                 self.refresh()
@@ -330,13 +346,16 @@ class CavaVisualizer(Static):
 
         if self.is_paused:
             changed = False
+            target_base = 0.25 if H > 1 else 0.8
+            target_alt = 0.15 if H > 1 else 0.4
+            scale = H if H > 1 else 1.0
             for i in range(self.num_bars):
-                target = 0.8 if (i % 2 == 0) else 0.4
+                target = (target_base if (i % 2 == 0) else target_alt) * scale
                 if abs(self._heights[i] - target) > 0.1:
                     if self._heights[i] > target:
-                        self._heights[i] = max(target, self._heights[i] - 0.6)
+                        self._heights[i] = max(target, self._heights[i] - max(0.4, H * 0.1))
                     else:
-                        self._heights[i] = min(target, self._heights[i] + 0.3)
+                        self._heights[i] = min(target, self._heights[i] + max(0.2, H * 0.05))
                     changed = True
             if changed:
                 self.refresh()
@@ -354,11 +373,18 @@ class CavaVisualizer(Static):
             treble = (math.cos(t * 8.2 - i * 0.75) * 0.5 + 0.5) * (norm**1.35) * 4.0
             jitter = (math.sin(t * 16.0 + i * 2.1) * 0.5 + 0.5) * 1.2
 
-            target = max(0.4, min(8.0, bass + mids + treble + jitter))
+            raw = max(0.2, min(8.0, bass + mids + treble + jitter))
+            if H > 1:
+                target = (raw / 8.0) * H
+                decay = max(0.5, H * 0.12)
+            else:
+                target = raw
+                decay = 0.7
+
             if target > self._heights[i]:
                 self._heights[i] = target
             else:
-                self._heights[i] = max(0.0, self._heights[i] - 0.7)
+                self._heights[i] = max(0.0, self._heights[i] - decay)
 
         self.refresh()
 
@@ -380,28 +406,50 @@ class CavaVisualizer(Static):
 
     def render(self) -> Text:
         accent, _fg, _is_dark = self._get_theme_styles()
-        text = Text()
+        H = self.display_height
 
-        if not self.is_playing:
-            for _ in range(self.num_bars):
-                text.append(" ", style=f"dim {accent}")
-            return text
+        if H <= 1:
+            text = Text()
+            if not self.is_playing:
+                for _ in range(self.num_bars):
+                    text.append(" ", style=f"dim {accent}")
+                return text
 
-        if self.is_paused:
+            if self.is_paused:
+                for h in self._heights:
+                    idx = min(8, int(round(h)))
+                    text.append(self.BARS[idx], style=f"dim {accent}")
+                return text
+
             for h in self._heights:
                 idx = min(8, int(round(h)))
-                text.append(self.BARS[idx], style=f"dim {accent}")
+                char = self.BARS[idx]
+                if idx >= 6:
+                    text.append(char, style=f"bold {accent}")
+                elif idx >= 1:
+                    text.append(char, style=f"{accent}")
+                else:
+                    text.append(char, style=f"dim {accent}")
             return text
 
-        for h in self._heights:
-            idx = min(8, int(round(h)))
-            char = self.BARS[idx]
-            if idx >= 6:
-                text.append(char, style=f"bold {accent}")
-            elif idx >= 1:
-                text.append(char, style=f"{accent}")
-            else:
-                text.append(char, style=f"dim {accent}")
+        # Multi-row cava spectrum
+        text = Text()
+        for r in range(H - 1, -1, -1):
+            for h in self._heights:
+                if not self.is_playing or h <= r:
+                    text.append(" ")
+                elif h >= r + 1:
+                    char = "█"
+                    style = f"dim {accent}" if self.is_paused else f"{accent}"
+                    text.append(char, style=style)
+                else:
+                    frac = h - r
+                    idx = min(8, max(1, int(round(frac * 8))))
+                    char = self.BARS[idx]
+                    style = f"dim {accent}" if self.is_paused else f"bold {accent}"
+                    text.append(char, style=style)
+            if r > 0:
+                text.append("\n")
 
         return text
 
@@ -527,10 +575,12 @@ class NowPlayingScreen(Screen):
     }
 
     #np-cava {
-        height: 1;
+        height: 1fr;
+        min-height: 2;
         width: 100%;
-        content-align: center middle;
+        content-align: center bottom;
         margin-top: 1;
+        margin-bottom: 1;
         background: transparent;
     }
 
@@ -538,7 +588,7 @@ class NowPlayingScreen(Screen):
         height: 1;
         width: 100%;
         content-align: center middle;
-        margin-top: 1;
+        margin-bottom: 1;
         color: $accent;
     }
     """
