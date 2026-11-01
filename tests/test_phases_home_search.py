@@ -40,12 +40,22 @@ def test_search_status_bar_render():
     assert "Which key" in rendered
     assert "[Alt+l]" not in rendered
     assert "[Alt+h]" not in rendered
+    assert "[p]" not in rendered
     assert "[a]" in rendered
     assert "[Enter]" in rendered
     assert "[f]" in rendered
     assert "[S]" in rendered
     assert "[q]" in rendered
     assert "[Esc]" in rendered
+
+    # When playing
+    class DummyApp:
+        current_track = Track("1", "Song", "/path")
+
+    bar._app = DummyApp()
+    rendered_playing = bar.render().plain
+    assert "[p]" in rendered_playing
+    assert "Playing" in rendered_playing
 
 
 def test_search_screen_albums_and_three_pane_split():
@@ -221,3 +231,90 @@ def test_search_screen_action_stop():
     # When input does not have focus, action_stop calls app.action_stop
     screen.action_stop()
     assert stopped is True
+
+
+def test_search_screen_action_now_playing():
+    screen = SearchScreen()
+    switched_to = None
+
+    class DummyApp:
+        current_track = Track("t1", "Test", "/path")
+
+        def switch_phase(self, phase):
+            nonlocal switched_to
+            switched_to = phase
+
+    screen._app = DummyApp()
+    screen.action_now_playing()
+    assert switched_to == "now_playing"
+
+    # If current_track is None, does nothing
+    switched_to = None
+    screen._app.current_track = None
+    screen.action_now_playing()
+    assert switched_to is None
+
+
+def test_search_screen_action_delete_item_album_and_track():
+    from unittest.mock import MagicMock
+
+    screen = SearchScreen()
+    mock_store = MagicMock()
+
+    class DummyApp:
+        album_store = mock_store
+        queue = [Track("t1", "Track 1", "/1"), Track("t2", "Track 2", "/2")]
+
+    screen._app = DummyApp()
+
+    # Case 1: In #albums-table pane
+    screen._active_pane = "albums"
+    screen.albums_split = True
+
+    class DummyAlbumsTable:
+        cursor_row = 0
+        row_count = 1
+
+        def coordinate_to_cell_key(self, coord):
+            class CellKey:
+                class RowKey:
+                    value = "album:MyFavs"
+
+                row_key = RowKey()
+
+            return CellKey()
+
+    screen.query_one = lambda sel, cls=None: DummyAlbumsTable()
+    screen._populate_albums_table = MagicMock()
+    screen.action_delete_item()
+    mock_store.delete_album.assert_called_once_with("MyFavs")
+
+    # Case 2: In #online-table with an album open
+    screen._active_pane = "online"
+    screen.current_selected_album = "Rock"
+    mock_store.get_album_tracks.return_value = [Track("t2", "Track 2", "/2")]
+
+    class DummyTracksTable:
+        cursor_row = 0
+        row_count = 1
+
+        def coordinate_to_cell_key(self, coord):
+            class CellKey:
+                class RowKey:
+                    value = "t1"
+
+                row_key = RowKey()
+
+            return CellKey()
+
+        def clear(self):
+            pass
+
+        def add_row(self, *args, **kwargs):
+            pass
+
+    screen.query_one = lambda sel, cls=None: DummyTracksTable()
+    screen.action_delete_item()
+    mock_store.remove_track.assert_called_once_with("Rock", "t1")
+    assert len(screen._app.queue) == 1
+    assert screen._app.queue[0].id == "t2"

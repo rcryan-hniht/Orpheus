@@ -98,6 +98,8 @@ class WhichKeyModal(ModalScreen[None]):
                     ("@artist <name>", "Filter search strictly by artist name"),
                     ("Enter", "Play selected track or open album"),
                     ("a", "Add highlighted track to custom Album"),
+                    ("d", "Delete track from album / delete album"),
+                    ("p", "Return to Now Playing screen (if playing)"),
                     ("s", "Stop playback (when navigating panes)"),
                     ("f", "Focus search input box"),
                     ("Esc", "Clear search query or return to Home"),

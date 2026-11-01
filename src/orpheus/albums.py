@@ -91,6 +91,19 @@ class AlbumStore:
                     (album_id, track.id, track_json, pos),
                 )
 
+    def remove_track(self, album_name: str, track_id: str) -> None:
+        """Remove a track from a custom album."""
+        with self.db.connection:
+            row = self.db.connection.execute(
+                "SELECT id FROM custom_albums WHERE name = ?", (album_name,)
+            ).fetchone()
+            if row:
+                album_id = row[0]
+                self.db.connection.execute(
+                    "DELETE FROM custom_album_tracks WHERE album_id = ? AND track_id = ?",
+                    (album_id, track_id),
+                )
+
     def list_albums(self) -> list[str]:
         rows = self.db.connection.execute("SELECT name FROM custom_albums ORDER BY name").fetchall()
         return [r[0] for r in rows]

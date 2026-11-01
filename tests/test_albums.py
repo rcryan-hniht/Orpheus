@@ -27,6 +27,15 @@ def test_album_store_crud(tmp_path):
     tracks2 = store.get_album_tracks("Synth Legends")
     assert len(tracks2) == 1
 
+    # Remove track
+    t2 = Track(id="2", title="Macintosh Plus", location="/mac.mp3", artist="Vektroid")
+    store.add_track("Synth Legends", t2)
+    assert len(store.get_album_tracks("Synth Legends")) == 2
+    store.remove_track("Synth Legends", "1")
+    tracks3 = store.get_album_tracks("Synth Legends")
+    assert len(tracks3) == 1
+    assert tracks3[0].id == "2"
+
     # Delete album
     store.delete_album("Synth Legends")
     assert store.list_albums() == []

@@ -9,7 +9,7 @@
   "7": "OrpheusApp",
   "8": "test_art.py",
   "9": "🎵 Orpheus",
-  "10": "test_phases_home_search.py",
+  "10": "test_search_screen_artist_query_and_enter_submission",
   "11": "orpheus",
   "12": "NowPlayingScreen",
   "13": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification",
@@ -20,15 +20,16 @@
   "18": "ShortcutBar",
   "19": "__main__.py",
   "20": "MatrixRain",
-  "21": "AudioResolver",
+  "21": "GlitchOverlay",
   "22": "AsciiTitle",
   "23": "SearchScreen",
-  "24": "get_themes",
+  "24": "glitch.py",
   "25": "app.py",
   "26": "updater.py",
   "27": "SearchStatusBar",
   "28": "._get_selected_track_and_context",
   "29": "._populate_local_table",
   "30": "test_visuals.py",
-  "31": "._do_search"
+  "31": "test_search_screen_action_delete_item_album_and_track",
+  "32": "ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan"
 }

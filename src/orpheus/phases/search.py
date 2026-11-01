@@ -27,6 +27,7 @@ class SearchStatusBar(Static):
 
     DEFAULT_CSS = """
     SearchStatusBar {
+        dock: bottom;
         height: 1;
         width: 100%;
         margin-top: 1;
@@ -34,13 +35,21 @@ class SearchStatusBar(Static):
     }
     """
 
+    @property
+    def safe_app(self) -> Any:
+        try:
+            return self.app
+        except Exception:
+            return getattr(self, "_app", None)
+
     def _get_accent(self) -> str:
         try:
-            if hasattr(self.app, "current_theme") and self.app.current_theme:
-                theme_accent = getattr(self.app.current_theme, "accent", None)
+            app = self.safe_app
+            if app and hasattr(app, "current_theme") and app.current_theme:
+                theme_accent = getattr(app.current_theme, "accent", None)
                 if theme_accent:
                     return str(theme_accent)
-                theme_primary = getattr(self.app.current_theme, "primary", None)
+                theme_primary = getattr(app.current_theme, "primary", None)
                 if theme_primary:
                     return str(theme_primary)
         except Exception:
@@ -50,15 +59,29 @@ class SearchStatusBar(Static):
     def render(self) -> Text:
         accent = self._get_accent()
         text = Text()
+        is_playing = False
+        try:
+            app = self.safe_app
+            if app and hasattr(app, "current_track") and app.current_track is not None:
+                is_playing = True
+        except Exception:
+            pass
+
         items = [
             ("[?]", "Which key"),
-            ("[a]", "Add to Album"),
-            ("[Enter]", "Play"),
-            ("[f]", "Find"),
-            ("[S]", "Settings"),
-            ("[q]", "Quit"),
-            ("[Esc]", "Home"),
         ]
+        if is_playing:
+            items.append(("[p]", "Playing"))
+        items.extend(
+            [
+                ("[a]", "Add to Album"),
+                ("[Enter]", "Play"),
+                ("[f]", "Find"),
+                ("[S]", "Settings"),
+                ("[q]", "Quit"),
+                ("[Esc]", "Home"),
+            ]
+        )
         for i, (k, desc) in enumerate(items):
             text.append(k, style=f"bold {accent}")
             text.append(f" {desc}", style="#909090")
@@ -79,6 +102,8 @@ class SearchScreen(Screen):
         Binding("tab", "switch_pane", "Switch Pane", priority=False),
         Binding("shift+tab", "switch_pane", "Switch Pane", priority=False),
         Binding("a", "add_to_album", "Add to Album", priority=True),
+        Binding("d", "delete_item", "Delete", priority=False, show=False),
+        Binding("p", "now_playing", "Now Playing", priority=False, show=False),
         Binding("s", "stop", "Stop", priority=False, show=False),
         Binding("f", "focus_search", "Find", priority=False),
         Binding("S", "settings", "Settings", priority=False),
@@ -98,6 +123,7 @@ class SearchScreen(Screen):
     }
 
     #search-bar-box {
+        dock: top;
         height: 3;
         width: 100%;
         margin-bottom: 1;
@@ -112,6 +138,7 @@ class SearchScreen(Screen):
     #search-panes {
         width: 100%;
         height: 1fr;
+        overflow: hidden;
     }
 
     .search-pane {
@@ -120,6 +147,12 @@ class SearchScreen(Screen):
         border: solid $panel;
         padding: 0 1;
         background: transparent;
+        overflow: hidden;
+    }
+
+    .search-pane DataTable {
+        height: 1fr;
+        width: 100%;
     }
 
     .pane-header {
@@ -283,6 +316,14 @@ class SearchScreen(Screen):
             event.prevent_default()
             event.stop()
             self.action_stop()
+        elif event.key == "d" and not inp.has_focus:
+            event.prevent_default()
+            event.stop()
+            self.action_delete_item()
+        elif event.key == "p" and not inp.has_focus:
+            event.prevent_default()
+            event.stop()
+            self.action_now_playing()
 
     def _populate_albums_table(self, query: str = "") -> None:
         try:
@@ -520,6 +561,79 @@ class SearchScreen(Screen):
         app = self.safe_app
         if app and hasattr(app, "action_which_key"):
             app.action_which_key()
+
+    def action_now_playing(self) -> None:
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus:
+                return
+        except Exception:
+            pass
+        app = self.safe_app
+        if app and getattr(app, "current_track", None) is not None and hasattr(app, "switch_phase"):
+            app.switch_phase("now_playing")
+
+    def action_delete_item(self) -> None:
+        try:
+            inp = self.query_one("#search-input", Input)
+            if inp.has_focus:
+                return
+        except Exception:
+            pass
+
+        app = self.safe_app
+        store = getattr(app, "album_store", None)
+        if not store:
+            return
+
+        # Case 1: In #albums-table -> delete selected album
+        if self._active_pane == "albums" and self.albums_split:
+            try:
+                tbl = self.query_one("#albums-table", DataTable)
+                idx = tbl.cursor_row
+                if idx is not None and 0 <= idx < tbl.row_count:
+                    row_key = tbl.coordinate_to_cell_key((idx, 0)).row_key.value
+                    if row_key.startswith("album:"):
+                        alb_name = row_key[len("album:") :]
+                        store.delete_album(alb_name)
+                        if self.current_selected_album == alb_name:
+                            self.current_selected_album = None
+                            self._online_results = []
+                            self.query_one("#online-table", DataTable).clear()
+                            self.query_one("#online-header", Static).update(
+                                "── ONLINE SEARCH (DEEZER) ──"
+                            )
+                        self._populate_albums_table()
+            except Exception:
+                pass
+            return
+
+        # Case 2: In #online-table with an album open -> remove track from album
+        if self.current_selected_album:
+            try:
+                tbl = self.query_one("#online-table", DataTable)
+                idx = tbl.cursor_row
+                if idx is not None and 0 <= idx < tbl.row_count:
+                    row_key = tbl.coordinate_to_cell_key((idx, 0)).row_key.value
+                    store.remove_track(self.current_selected_album, row_key)
+                    if app and hasattr(app, "queue"):
+                        app.queue = [t for t in app.queue if t.id != row_key]
+                    updated = store.get_album_tracks(self.current_selected_album)
+                    self._online_results = updated
+                    tbl.clear()
+                    for t in updated:
+                        dur = int(t.duration) if t.duration else 0
+                        dur_str = f"{dur // 60}:{dur % 60:02d}" if t.duration else "--:--"
+                        tbl.add_row(t.title, t.artist, t.album, dur_str, key=t.id)
+                    alb_title = self.current_selected_album.upper()
+                    header_text = f"── ALBUM: {alb_title} ({len(updated)} tracks) ──"
+                    self.query_one("#online-header", Static).update(header_text)
+                    if updated:
+                        new_idx = min(idx, len(updated) - 1)
+                        tbl.cursor_coordinate = Coordinate(new_idx, 0)
+                    self._populate_albums_table()
+            except Exception:
+                pass
 
     def on_screen_resume(self) -> None:
         if self.albums_split:
