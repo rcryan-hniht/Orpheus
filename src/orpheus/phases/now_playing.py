@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 from rich.text import Text
+from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -170,7 +171,7 @@ class AlbumArtWidget(Static):
 
 
 class SyncedLyricsWidget(Static):
-    """Auto-scrolling LRCLIB synchronized lyrics with active line highlighting."""
+    """Auto-scrolling LRCLIB synchronized lyrics with active line highlighting and manual scroll."""
 
     DEFAULT_CSS = """
     SyncedLyricsWidget {
@@ -194,6 +195,8 @@ class SyncedLyricsWidget(Static):
         self.parsed_lines: list[LyricLine] = []
         self.current_position = 0.0
         self._is_loading = False
+        self._scroll_offset: int = 0
+        self._manual_scroll_time: float = 0.0
 
     def _get_accent(self) -> str:
         try:
@@ -219,11 +222,33 @@ class SyncedLyricsWidget(Static):
             self.parsed_lines = parse_lrc(lyrics.synced)
         else:
             self.parsed_lines = []
+        self._scroll_offset = 0
+        self._manual_scroll_time = 0.0
         self.refresh()
 
     def set_position(self, seconds: float) -> None:
         self.current_position = seconds
+        # Auto-resume synchronized tracking after 4.0s of idle
+        if self._manual_scroll_time > 0.0 and time.monotonic() - self._manual_scroll_time > 4.0:
+            self._scroll_offset = 0
+            self._manual_scroll_time = 0.0
         self.refresh()
+
+    def scroll_lyrics(self, delta: int) -> None:
+        """Scroll lyrics manually up (negative delta) or down (positive delta)."""
+        self._scroll_offset += delta
+        self._manual_scroll_time = time.monotonic()
+        self.refresh()
+
+    def on_mouse_scroll_up(self, event: events.MouseScrollUp) -> None:
+        event.prevent_default()
+        event.stop()
+        self.scroll_lyrics(-2)
+
+    def on_mouse_scroll_down(self, event: events.MouseScrollDown) -> None:
+        event.prevent_default()
+        event.stop()
+        self.scroll_lyrics(2)
 
     def render(self) -> Text:
         accent = self._get_accent()
@@ -236,10 +261,20 @@ class SyncedLyricsWidget(Static):
             text.append("No lyrics available for this track\n", style="italic #606060")
             return text
 
+        # Check idle timeout in render
+        if self._manual_scroll_time > 0.0 and time.monotonic() - self._manual_scroll_time > 4.0:
+            self._scroll_offset = 0
+            self._manual_scroll_time = 0.0
+
         if not self.parsed_lines:
             # Plain lyrics fallback
             if self.lyrics.plain:
-                for line in self.lyrics.plain.splitlines():
+                lines = self.lyrics.plain.splitlines()
+                window_size = max(16, (self.size.height or 18) - 4)
+                max_scroll = max(0, len(lines) - window_size)
+                start_idx = max(0, min(max_scroll, self._scroll_offset))
+                end_idx = min(len(lines), start_idx + window_size)
+                for line in lines[start_idx:end_idx]:
                     text.append(line + "\n", style="#c0c0c0")
             else:
                 text.append("No lyrics available for this track\n", style="italic #606060")
@@ -253,10 +288,13 @@ class SyncedLyricsWidget(Static):
         else:
             text.append("• • •\n\n", style="#404040")
 
-        # Window of visible lines around active line
+        # Window of visible lines around active line, adjusted by manual scroll offset
         window_size = max(16, (self.size.height or 18) - 4)
-        start_idx = max(0, active_idx - (window_size // 2))
+        center_idx = max(0, min(len(self.parsed_lines) - 1, active_idx + self._scroll_offset))
+        start_idx = max(0, center_idx - (window_size // 2))
         end_idx = min(len(self.parsed_lines), start_idx + window_size)
+        if end_idx - start_idx < window_size and start_idx > 0:
+            start_idx = max(0, end_idx - window_size)
 
         for i in range(start_idx, end_idx):
             line = self.parsed_lines[i]
@@ -480,6 +518,7 @@ class NowPlayingFooter(Static):
         items = [
             ("[?]", "Which key"),
             ("[space]", "Play/Pause"),
+            ("↑/↓", "Scroll"),
             ("→/←", "Seek"),
             ("Shift+→/←", "Next/Prev"),
             ("[r]", "Repeat"),
@@ -505,6 +544,8 @@ class NowPlayingScreen(Screen):
         Binding("?", "which_key", "Which key", priority=True, show=False),
         Binding("space", "toggle_playback", "Play/Pause", priority=True),
         Binding("s", "stop", "Stop", priority=True, show=False),
+        Binding("up", "scroll_lyrics_up", "Scroll Lyrics Up", priority=True),
+        Binding("down", "scroll_lyrics_down", "Scroll Lyrics Down", priority=True),
         Binding("left", "seek_backward", "Seek -5s", priority=True),
         Binding("right", "seek_forward", "Seek +5s", priority=True),
         Binding("shift+left", "prev_track", "Previous", priority=True),
@@ -688,6 +729,30 @@ class NowPlayingScreen(Screen):
             art = self.query_one("#np-album-art", AlbumArtWidget)
             if supports_kitty_graphics() and art._raw_bytes:
                 art.set_timer(0.05, art._draw_kitty)
+        except Exception:
+            pass
+
+    def action_scroll_lyrics_up(self) -> None:
+        try:
+            self.query_one("#np-lyrics", SyncedLyricsWidget).scroll_lyrics(-1)
+        except Exception:
+            pass
+
+    def action_scroll_lyrics_down(self) -> None:
+        try:
+            self.query_one("#np-lyrics", SyncedLyricsWidget).scroll_lyrics(1)
+        except Exception:
+            pass
+
+    def on_mouse_scroll_up(self, event: events.MouseScrollUp) -> None:
+        try:
+            self.query_one("#np-lyrics", SyncedLyricsWidget).scroll_lyrics(-2)
+        except Exception:
+            pass
+
+    def on_mouse_scroll_down(self, event: events.MouseScrollDown) -> None:
+        try:
+            self.query_one("#np-lyrics", SyncedLyricsWidget).scroll_lyrics(2)
         except Exception:
             pass
 

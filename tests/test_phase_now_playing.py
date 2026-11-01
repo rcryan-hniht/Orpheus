@@ -298,3 +298,35 @@ def test_now_playing_compose_includes_cava_and_no_vol():
             assert footer_y - badges_y <= 3
 
     asyncio.run(run())
+
+
+def test_synced_lyrics_scroll_mouse_and_arrows():
+    from orpheus.models import Lyrics
+    from orpheus.phases.now_playing import SyncedLyricsWidget
+
+    lines = [f"[00:{i:02d}.00] Line {i}" for i in range(30)]
+    lrc = "\n".join(lines)
+    w = SyncedLyricsWidget()
+    w.set_lyrics(Lyrics(synced=lrc))
+    w.set_position(10.0)
+
+    # Initial render shows active line
+    initial = w.render().plain
+    assert "Line 10" in initial
+
+    # Scroll down 5 lines
+    w.scroll_lyrics(5)
+    scrolled_down = w.render().plain
+    assert "Line" in scrolled_down
+    assert w._scroll_offset == 5
+
+    # Scroll up 2 lines
+    w.scroll_lyrics(-2)
+    assert w._scroll_offset == 3
+
+    # NowPlayingScreen actions
+    screen = NowPlayingScreen()
+    screen._app = None
+    # Test action methods don't crash when widget isn't mounted
+    screen.action_scroll_lyrics_up()
+    screen.action_scroll_lyrics_down()

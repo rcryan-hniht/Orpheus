@@ -235,8 +235,10 @@ class SearchScreen(Screen):
         online_table.cursor_type = "row"
         online_table.add_columns("Title", "Artist", "Album", "Duration")
 
-        # Focus search input initially
-        self.query_one("#search-input", Input).focus()
+        # Always focus search input initially with cursor in search box
+        inp = self.query_one("#search-input", Input)
+        inp.focus()
+        inp.cursor_position = len(inp.value)
 
     def _get_visible_panes(self) -> list[tuple[str, DataTable]]:
         panes: list[tuple[str, DataTable]] = []
@@ -265,11 +267,15 @@ class SearchScreen(Screen):
                 if panes:
                     event.prevent_default()
                     event.stop()
-                    # When pressing down from search bar, prefer search results if present
-                    if event.key == "down" and len(panes) > 1 and panes[1][1].row_count > 0:
-                        target = panes[1]
-                    else:
-                        target = panes[0]
+                    # If query has results, down arrow goes to search pane; else My album
+                    has_search_tracks = (
+                        event.key == "down"
+                        and bool(inp.value.strip())
+                        and len(self._online_results) > 0
+                        and self.current_selected_album is None
+                        and len(panes) > 1
+                    )
+                    target = panes[1] if has_search_tracks else panes[0]
                     self._active_pane = target[0]
                     target[1].focus()
                     if target[1].cursor_row is None or target[1].cursor_row < 0:
@@ -550,7 +556,9 @@ class SearchScreen(Screen):
 
     def action_focus_search(self) -> None:
         try:
-            self.query_one("#search-input", Input).focus()
+            inp = self.query_one("#search-input", Input)
+            inp.focus()
+            inp.cursor_position = len(inp.value)
         except Exception:
             pass
 
@@ -681,6 +689,7 @@ class SearchScreen(Screen):
     def on_screen_resume(self) -> None:
         if self.albums_split:
             self._populate_albums_table()
+        self.action_focus_search()
 
     def action_add_to_album(self) -> None:
         track = self._get_highlighted_track()

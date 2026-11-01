@@ -109,6 +109,7 @@ class WhichKeyModal(ModalScreen[None]):
                 [
                     ("Space", "Play / Pause playback"),
                     ("s", "Stop playback"),
+                    ("↑ / ↓", "Scroll lyrics up / down (also mouse wheel)"),
                     ("→ / ←", "Seek forward / backward 5s (10s on double-tap)"),
                     ("Shift+→ / Shift+←", "Play Next / Previous track in queue"),
                     ("r", "Cycle Repeat mode (Off → Track → All)"),

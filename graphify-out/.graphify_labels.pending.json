@@ -1,8 +1,9 @@
 {
   "0": "CavaVisualizer",
   "1": "MpvPlayer",
-  "2": "ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan",
+  "2": "HomeScreen",
   "3": "Database",
+  "4": "test_phases_home_search.py",
   "5": "Xác minh TermMusic MVP",
   "6": "install.sh",
   "7": "OrpheusApp",
@@ -21,8 +22,14 @@
   "20": "MatrixRain",
   "21": "GlitchOverlay",
   "22": "AsciiTitle",
+  "23": ".safe_app",
   "24": "glitch.py",
   "25": "app.py",
   "26": "updater.py",
-  "27": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification"
+  "27": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification",
+  "28": "SearchStatusBar",
+  "29": "._do_search",
+  "30": ".on_key",
+  "31": "test_search_screen_action_delete_item_album_and_track",
+  "32": "test_search_screen_artist_query_and_enter_submission"
 }

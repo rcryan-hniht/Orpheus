@@ -348,3 +348,48 @@ def test_search_screen_action_delete_item_album_and_track():
         timeout=3.0,
         markup=False,
     )
+
+
+def test_search_screen_down_arrow_routing_and_focus():
+    import asyncio
+
+    from textual.app import App
+    from textual.widgets import DataTable, Input
+
+    class TestApp(App):
+        def on_mount(self):
+            self.push_screen(SearchScreen())
+
+    async def run():
+        app = TestApp()
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+            inp = screen.query_one("#search-input", Input)
+
+            # 1. On entry, search box is focused
+            assert inp.has_focus is True
+
+            # 2. Down arrow with empty search -> focus goes to My album (albums-table)
+            await pilot.press("down")
+            await pilot.pause()
+            albums_tbl = screen.query_one("#albums-table", DataTable)
+            assert albums_tbl.has_focus is True
+
+            # 3. Press Up to return to search box
+            await pilot.press("up")
+            await pilot.pause()
+            assert inp.has_focus is True
+
+            # 4. If search results are present, Down arrow goes to SEARCH pane
+            inp.value = "Huong Ly"
+            screen._online_results = [Track("1", "Song A", "loc", artist="Huong Ly")]
+            online_tbl = screen.query_one("#online-table", DataTable)
+            online_tbl.add_row("Song A", "Huong Ly", "Alb", "3:00", key="1")
+            screen.current_selected_album = None
+
+            await pilot.press("down")
+            await pilot.pause()
+            assert online_tbl.has_focus is True
+
+    asyncio.run(run())
