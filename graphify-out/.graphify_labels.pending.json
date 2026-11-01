@@ -9,10 +9,9 @@
   "7": "OrpheusApp",
   "8": "test_art.py",
   "9": "🎵 Orpheus",
-  "10": "updater.py",
+  "10": "resolver.py",
   "11": "orpheus",
   "12": "NowPlayingScreen",
-  "13": "ORPHEUS Cyberpunk-Minimalist TUI Redesign — Design Specification",
   "14": "2026-11-01-orpheus-themes.md",
   "15": "AlbumsModal",
   "16": "SettingsModal",
@@ -25,9 +24,5 @@
   "23": "SearchScreen",
   "24": "glitch.py",
   "25": "app.py",
-  "26": "httpx",
-  "27": "sources.py",
-  "28": "YouTubeMetadataProvider",
-  "29": "test_cli.py",
-  "30": "ORPHEUS Cyberpunk-Minimalist TUI Redesign Implementation Plan"
+  "26": "updater.py"
 }

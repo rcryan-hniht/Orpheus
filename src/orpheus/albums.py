@@ -79,6 +79,10 @@ class AlbumStore:
                 ).fetchone()
             if row:
                 album_id = row[0]
+                self.db.connection.execute(
+                    "DELETE FROM custom_album_tracks WHERE album_id = ? AND track_id = ?",
+                    (album_id, track.id),
+                )
                 pos_row = self.db.connection.execute(
                     "SELECT MAX(position) FROM custom_album_tracks WHERE album_id = ?",
                     (album_id,),
@@ -105,10 +109,14 @@ class AlbumStore:
                 )
 
     def list_albums(self) -> list[str]:
-        rows = self.db.connection.execute("SELECT name FROM custom_albums ORDER BY name").fetchall()
+        """List albums ordered by creation order (queue / FIFO)."""
+        rows = self.db.connection.execute(
+            "SELECT name FROM custom_albums ORDER BY id ASC"
+        ).fetchall()
         return [r[0] for r in rows]
 
     def get_album_tracks(self, album_name: str) -> list[Track]:
+        """Get tracks for an album ordered by addition order (queue / FIFO)."""
         row = self.db.connection.execute(
             "SELECT id FROM custom_albums WHERE name = ?", (album_name,)
         ).fetchone()
@@ -116,7 +124,8 @@ class AlbumStore:
             return []
         album_id = row[0]
         rows = self.db.connection.execute(
-            "SELECT track_data FROM custom_album_tracks WHERE album_id = ? ORDER BY position",
+            "SELECT track_data FROM custom_album_tracks "
+            "WHERE album_id = ? ORDER BY position ASC, rowid ASC",
             (album_id,),
         ).fetchall()
         tracks: list[Track] = []

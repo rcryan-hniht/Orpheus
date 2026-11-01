@@ -44,6 +44,37 @@ def test_album_store_crud(tmp_path):
     db.close()
 
 
+def test_album_and_track_queue_ordering(tmp_path):
+    db = Database(tmp_path / "queue_test.sqlite")
+    store = AlbumStore(db)
+
+    # 1. Test album creation queue order (FIFO)
+    store.create_album("Zeta")
+    store.create_album("Beta")
+    store.create_album("Alpha")
+    assert store.list_albums() == ["Zeta", "Beta", "Alpha"]
+
+    # 2. Test track addition queue order (FIFO)
+    t_z = Track(id="tz", title="Zeta Track", location="/z.mp3")
+    t_a = Track(id="ta", title="Alpha Track", location="/a.mp3")
+    t_m = Track(id="tm", title="Mid Track", location="/m.mp3")
+
+    store.add_track("Beta", t_z)
+    store.add_track("Beta", t_a)
+    store.add_track("Beta", t_m)
+
+    tracks = store.get_album_tracks("Beta")
+    assert [t.id for t in tracks] == ["tz", "ta", "tm"]
+    assert [t.title for t in tracks] == ["Zeta Track", "Alpha Track", "Mid Track"]
+
+    # Re-adding an existing track queues it at the end
+    store.add_track("Beta", t_z)
+    tracks_after = store.get_album_tracks("Beta")
+    assert [t.id for t in tracks_after] == ["ta", "tm", "tz"]
+
+    db.close()
+
+
 def test_albums_modal_colon_key_and_creation(tmp_path):
     import asyncio
 

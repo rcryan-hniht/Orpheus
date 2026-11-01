@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/albums.py": {
-    "mtime": 1793564701.0272453,
-    "seen": 1793564878.8368905,
-    "ast_hash": "4e35984133aa5b033dd51f2131514822",
+    "mtime": 1793565384.3749797,
+    "seen": 1793565435.939319,
+    "ast_hash": "76b179d5f570d9cceeb2878020d7f72e",
     "semantic_hash": ""
   },
   "src/orpheus/art.py": {
@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "tests/test_albums.py": {
-    "mtime": 1793564776.9786606,
-    "seen": 1793564878.8369122,
-    "ast_hash": "23d5dae8131b172430106f8fb4344e25",
+    "mtime": 1793565409.9454563,
+    "seen": 1793565435.9393468,
+    "ast_hash": "b3ec2e92e2c830577e3e9172cce6cb65",
     "semantic_hash": ""
   },
   "tests/test_art.py": {
