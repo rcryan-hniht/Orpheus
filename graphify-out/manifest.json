@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/app.py": {
-    "mtime": 1793596242.4511385,
-    "seen": 1793596430.1384776,
-    "ast_hash": "2dc2221d7161060bf5802efa8c3854a4",
+    "mtime": 1793596823.1312475,
+    "seen": 1793597315.3874497,
+    "ast_hash": "3d0e3a4851fd476ed538e88761291818",
     "semantic_hash": ""
   },
   "src/orpheus/lyrics.py": {
@@ -198,21 +198,21 @@
     "semantic_hash": ""
   },
   "src/orpheus/phases/home.py": {
-    "mtime": 1793562571.025019,
-    "seen": 1793562749.7525814,
-    "ast_hash": "ab9e2dc127f02f72b7095ead9cbbaaca",
+    "mtime": 1793597016.4404764,
+    "seen": 1793597315.3874586,
+    "ast_hash": "938f59cda0bc124f8e515d71e17714de",
     "semantic_hash": ""
   },
   "src/orpheus/phases/now_playing.py": {
-    "mtime": 1793595503.8175137,
-    "seen": 1793596430.138503,
-    "ast_hash": "cb69e3091f37b1608e0970ebdd29926f",
+    "mtime": 1793597221.1191065,
+    "seen": 1793597315.3874593,
+    "ast_hash": "b547875295f6c72d595c3a8ef579a616",
     "semantic_hash": ""
   },
   "src/orpheus/phases/search.py": {
-    "mtime": 1793596300.1674674,
-    "seen": 1793596430.1385055,
-    "ast_hash": "1c396a4cb5a2669a14164de8dfc3780b",
+    "mtime": 1793596954.8178434,
+    "seen": 1793597315.3874607,
+    "ast_hash": "492408cc431744d831f3b734bde7c911",
     "semantic_hash": ""
   },
   "src/orpheus/resolver.py": {
@@ -252,15 +252,15 @@
     "semantic_hash": ""
   },
   "tests/test_phase_now_playing.py": {
-    "mtime": 1793596379.9283035,
-    "seen": 1793596430.1385458,
-    "ast_hash": "212edc6e5d05a2b0022da2c99e19b337",
+    "mtime": 1793597251.4407926,
+    "seen": 1793597315.3874764,
+    "ast_hash": "4a898dd91233e9d838533a9b4783f6ae",
     "semantic_hash": ""
   },
   "tests/test_phases_home_search.py": {
-    "mtime": 1793568839.632485,
-    "seen": 1793568920.9080393,
-    "ast_hash": "1e7cbbfbb6707a19b8736e33e55a4b1a",
+    "mtime": 1793597016.4404764,
+    "seen": 1793597315.3874772,
+    "ast_hash": "231d58f0bf73f3c85c7e9deccb223786",
     "semantic_hash": ""
   },
   "tests/test_resolver.py": {
@@ -288,9 +288,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/which_key.py": {
-    "mtime": 1793568239.2773407,
-    "seen": 1793568398.998156,
-    "ast_hash": "5a9ef5ba78948c5e3bbc97dc32a3f4f0",
+    "mtime": 1793597164.9868367,
+    "seen": 1793597315.3874693,
+    "ast_hash": "7646cbcb9f08c24b4d7fc8b28eab1e03",
     "semantic_hash": ""
   },
   "src/orpheus/cava.py": {

@@ -54,7 +54,7 @@ def test_now_playing_footer_render():
     assert "[space]" in rendered
     assert "Seek" in rendered
     assert "[r]" in rendered
-    assert "[k]" in rendered
+    assert "[k]" not in rendered
     assert "[f]" in rendered
     assert "[S]" in rendered
     assert "[q]" in rendered
@@ -286,7 +286,7 @@ def test_now_playing_compose_includes_cava_and_no_vol():
             assert "Vol:" not in badges_str
             assert "▶" in badges_str
             assert "[Repeat: Off]" in badges_str
-            assert "[Karaoke: Off]" in badges_str
+            assert "[Karaoke:" not in badges_str
 
             cava_widget = screen.query_one("#np-cava", CavaVisualizer)
             assert cava_widget.is_playing is True

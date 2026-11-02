@@ -523,7 +523,6 @@ class NowPlayingFooter(Static):
             ("→/←", "Seek"),
             ("Shift+→/←", "Next/Prev"),
             ("[r]", "Repeat"),
-            ("[k]", "Karaoke"),
             ("[f]", "Find"),
             ("[S]", "Settings"),
             ("[q]", "Quit"),
@@ -552,7 +551,7 @@ class NowPlayingScreen(Screen):
         Binding("shift+left", "prev_track", "Previous", priority=True),
         Binding("shift+right", "next_track", "Next", priority=True),
         Binding("r", "toggle_repeat", "Repeat", priority=True),
-        Binding("k", "toggle_karaoke", "Karaoke", priority=True),
+        Binding("k", "toggle_karaoke", "Karaoke", priority=True, show=False),
         Binding("f", "find", "Find", priority=True),
         Binding("S", "settings", "Settings", priority=True),
         Binding("q", "quit", "Quit", priority=True),
@@ -761,9 +760,8 @@ class NowPlayingScreen(Screen):
             self.query_one("#progress-container", Static).update(f"{pos_str}  {bar}  {rem_str}")
 
             repeat_badge = f"[Repeat: {self.repeat_mode.capitalize()}]"
-            karaoke_badge = f"[Karaoke: {'On' if self.karaoke_enabled else 'Off'}]"
             state_icon = "⏸" if state.paused else "▶"
-            badges_text = f"{state_icon}   {repeat_badge}   {karaoke_badge}"
+            badges_text = f"{state_icon}   {repeat_badge}"
             self.query_one("#badges-bar", Static).update(badges_text)
 
             cava_w = self.query_one("#np-cava", CavaVisualizer)

@@ -1,7 +1,7 @@
 {
   "0": "CavaReader",
   "1": "MpvPlayer",
-  "2": "HomeScreen",
+  "2": ".on_key",
   "3": "Database",
   "4": "SearchScreen",
   "5": "Xác minh TermMusic MVP",
@@ -22,7 +22,7 @@
   "20": "MatrixRain",
   "21": "GlitchOverlay",
   "22": "AsciiTitle",
-  "23": "AlbumNameModal",
+  "23": ".render",
   "24": "glitch.py",
   "25": "app.py",
   "27": "test_themes.py",

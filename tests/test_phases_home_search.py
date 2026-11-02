@@ -500,3 +500,123 @@ def test_search_screen_album_pane_shortcuts_and_status_bar():
         timeout=3.0,
         markup=False,
     )
+
+
+def test_search_screen_resume_positions_on_playing_album_track():
+    import asyncio
+    from unittest.mock import MagicMock
+
+    from textual.app import App
+    from textual.widgets import DataTable, Input
+
+    from orpheus.models import Track
+
+    track1 = Track(
+        id="t1",
+        title="Song 1",
+        location="/loc1",
+        artist="Artist 1",
+        album="My Album",
+        duration=180.0,
+    )
+    track2 = Track(
+        id="t2",
+        title="Song 2",
+        location="/loc2",
+        artist="Artist 2",
+        album="My Album",
+        duration=200.0,
+    )
+
+    mock_store = MagicMock()
+    mock_store.list_albums.return_value = ["My Album", "Other Album"]
+    mock_store.get_album_tracks.side_effect = lambda alb: (
+        [track1, track2] if alb == "My Album" else []
+    )
+
+    class TestApp(App):
+        def __init__(self):
+            super().__init__()
+            self.album_store = mock_store
+            self.current_track = track2
+            self.current_album = "My Album"
+
+        def on_mount(self):
+            self.push_screen(SearchScreen())
+
+    async def run():
+        app = TestApp()
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+
+            # Initial mount should detect track2 in "My Album"
+            online_table = screen.query_one("#online-table", DataTable)
+            assert screen.current_selected_album == "My Album"
+            assert online_table.cursor_coordinate.row == 1  # track2 is at index 1
+            assert screen._active_pane == "online"
+
+            # Now simulate no track playing
+            app.current_track = None
+            app.current_album = None
+            screen.on_screen_resume()
+            await pilot.pause()
+
+            inp = screen.query_one("#search-input", Input)
+            assert inp.has_focus
+
+    asyncio.run(run())
+
+
+def test_home_screen_now_playing_widget():
+    import asyncio
+
+    from textual.app import App
+
+    from orpheus.models import PlaybackState, Track
+    from orpheus.phases.home import HomePlayingWidget, HomeScreen
+
+    track = Track(
+        id="t1",
+        title="Sinh Nhật Của Xinh Nhất",
+        location="/loc",
+        artist="24k.Right",
+        duration=180.0,
+    )
+    state = PlaybackState(position=45.0, duration=180.0, paused=False, idle=False)
+
+    class TestApp(App):
+        def on_mount(self):
+            self.push_screen(HomeScreen())
+
+    async def run():
+        app = TestApp()
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+            widget = screen.query_one("#home-now-playing", HomePlayingWidget)
+
+            # Initially idle
+            assert widget.display is False
+
+            # Update playback with track and album
+            screen.update_playback(track, state, album="Sexy trap")
+            await pilot.pause()
+
+            assert widget.display is True
+            rendered = widget.render().plain
+            assert "Sinh Nhật Của Xinh Nhất" in rendered
+            assert "24k.Right" in rendered
+            assert "[Phase: Now Playing]" in rendered
+            assert "[Album: Sexy trap]" in rendered
+            assert "0:45" in rendered
+            assert "-2:15" in rendered
+            assert "●" in rendered  # Timeline progress knob
+
+            # Stop playback
+            idle_state = PlaybackState(idle=True)
+            screen.update_playback(None, idle_state, None)
+            await pilot.pause()
+            assert widget.display is False
+
+    asyncio.run(run())

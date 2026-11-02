@@ -219,6 +219,8 @@ class OrpheusApp(App[None]):
         self.current_track = track
         self.now_playing_screen.update_track(track, lyrics=None, is_loading=True)
         self.home_screen.set_playing_state(True)
+        if hasattr(self.home_screen, "update_playback"):
+            self.home_screen.update_playback(track, self.playback, self.current_album)
         self.switch_phase("now_playing")
         if notify_loading:
             try:
@@ -271,6 +273,8 @@ class OrpheusApp(App[None]):
             self.playback = state
             is_active = not state.idle and (state.position > 0 or not state.paused)
             self.home_screen.set_playing_state(is_active)
+            if hasattr(self.home_screen, "update_playback"):
+                self.home_screen.update_playback(self.current_track, state, self.current_album)
             self.now_playing_screen.update_playback_state(state)
 
             # Auto-advance when track ended
@@ -334,6 +338,8 @@ class OrpheusApp(App[None]):
         self.queue = []
         self.playback = PlaybackState(idle=True)
         self.home_screen.set_playing_state(False)
+        if hasattr(self.home_screen, "update_playback"):
+            self.home_screen.update_playback(None, self.playback, None)
         try:
             if hasattr(self.now_playing_screen, "cava_bar"):
                 self.now_playing_screen.cava_bar.set_playback(False, False)

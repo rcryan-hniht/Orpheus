@@ -260,10 +260,7 @@ class SearchScreen(Screen):
         online_table.cursor_type = "row"
         online_table.add_columns("Title", "Artist", "Album", "Duration")
 
-        # Always focus search input initially with cursor in search box
-        inp = self.query_one("#search-input", Input)
-        inp.focus()
-        inp.cursor_position = len(inp.value)
+        self.on_screen_resume()
 
     def _get_visible_panes(self) -> list[tuple[str, DataTable]]:
         panes: list[tuple[str, DataTable]] = []
@@ -934,7 +931,51 @@ class SearchScreen(Screen):
     def on_screen_resume(self) -> None:
         if self.albums_split:
             self._populate_albums_table()
-        self.action_focus_search()
+
+        # Check if a track from a saved album is currently playing
+        app = self.safe_app
+        curr_track = getattr(app, "current_track", None)
+        curr_album = getattr(app, "current_album", None)
+        store = getattr(app, "album_store", None)
+        track_found_in_album = False
+
+        if curr_track and curr_album and store:
+            tracks = store.get_album_tracks(curr_album)
+            for idx, t in enumerate(tracks):
+                if t.id == curr_track.id:
+                    track_found_in_album = True
+                    try:
+                        inp = self.query_one("#search-input", Input)
+                        inp.value = ""
+                    except Exception:
+                        pass
+
+                    # Select album in left albums table
+                    try:
+                        alb_table = self.query_one("#albums-table", DataTable)
+                        for a_idx, row_key in enumerate(alb_table.rows.keys()):
+                            key_val = row_key.value if hasattr(row_key, "value") else str(row_key)
+                            if key_val == f"album:{curr_album}":
+                                alb_table.cursor_coordinate = Coordinate(a_idx, 0)
+                                break
+                    except Exception:
+                        pass
+
+                    # Open the album in right table and place cursor directly on that track
+                    self._select_and_open_album(curr_album, play_immediately=False)
+                    try:
+                        table = self.query_one("#online-table", DataTable)
+                        table.cursor_coordinate = Coordinate(idx, 0)
+                        self._active_pane = "online"
+                        if hasattr(table, "focus"):
+                            table.focus()
+                        self._refresh_status_bar()
+                    except Exception:
+                        pass
+                    break
+
+        if not track_found_in_album:
+            self.action_focus_search()
 
     def action_add_to_album(self) -> None:
         track = self._get_highlighted_track()
@@ -954,7 +995,12 @@ class SearchScreen(Screen):
                     callback=on_dismiss,
                 )
 
-    def _select_and_open_album(self, album_name: str, play_immediately: bool = False) -> None:
+    def _select_and_open_album(
+        self,
+        album_name: str,
+        play_immediately: bool = False,
+        target_track_id: str | None = None,
+    ) -> None:
         self.current_selected_album = album_name
         store = getattr(self.safe_app, "album_store", None)
         if not store:
@@ -964,7 +1010,10 @@ class SearchScreen(Screen):
         try:
             table = self.query_one("#online-table", DataTable)
             table.clear()
-            for t in tracks:
+            target_idx = 0
+            for i, t in enumerate(tracks):
+                if target_track_id and t.id == target_track_id:
+                    target_idx = i
                 dur = int(t.duration) if t.duration else 0
                 dur_str = f"{dur // 60}:{dur % 60:02d}" if t.duration else "--:--"
                 table.add_row(t.title, t.artist, t.album, dur_str, key=t.id)
@@ -972,7 +1021,7 @@ class SearchScreen(Screen):
                 f"── ALBUM: {album_name.upper()} ({len(tracks)} tracks) ──"
             )
             if tracks:
-                table.cursor_coordinate = Coordinate(0, 0)
+                table.cursor_coordinate = Coordinate(target_idx, 0)
                 if play_immediately:
                     first_track = tracks[0]
                     queue = list(tracks[1:])
@@ -996,7 +1045,15 @@ class SearchScreen(Screen):
                 )
                 if row_key.startswith("album:"):
                     album_name = row_key[len("album:") :]
-                    self._select_and_open_album(album_name, play_immediately=False)
+                    target_track_id = None
+                    app = self.safe_app
+                    if app and getattr(app, "current_album", None) == album_name:
+                        curr_track = getattr(app, "current_track", None)
+                        if curr_track:
+                            target_track_id = curr_track.id
+                    self._select_and_open_album(
+                        album_name, play_immediately=False, target_track_id=target_track_id
+                    )
             except Exception:
                 pass
 
