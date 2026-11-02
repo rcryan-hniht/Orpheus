@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793568410.5895102,
-    "seen": 1793568920.9080532,
-    "ast_hash": "72c43db9625162cadfe66d8cced32312",
+    "mtime": 1793628931.2081275,
+    "seen": 1793628989.1705296,
+    "ast_hash": "553ae8c76b5fd85282d82734317cf415",
     "semantic_hash": ""
   },
   "docs/verification.md": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "tests/test_themes.py": {
-    "mtime": 1793568888.9204023,
-    "seen": 1793568920.908049,
-    "ast_hash": "1a8dfee075169be22ac914ad65778f97",
+    "mtime": 1793628954.30653,
+    "seen": 1793628989.1705272,
+    "ast_hash": "5157020ac14975b28317260c80d79e1d",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-11-01-orpheus-themes.md": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "src/orpheus/themes.py": {
-    "mtime": 1793568814.4500163,
-    "seen": 1793568920.9080076,
-    "ast_hash": "efe4b338b9217ade88f1893efe4ee7f6",
+    "mtime": 1793628884.3703694,
+    "seen": 1793628989.1705074,
+    "ast_hash": "677e4900301819e01c9bafc4d0e7c068",
     "semantic_hash": ""
   },
   "install.sh": {

@@ -41,6 +41,7 @@ def test_presets_have_requested_names_and_modes():
         ("github-dark-contrast", "GitHub Dark Contrast"),
         ("blackmetal", "BlackMetal"),
         ("sequoia-light-monochrome", "Sequoia Light Monochrome"),
+        ("eink-true-light", "E-Ink True Light"),
     )
     assert [(theme.name, theme.dark) for theme in get_themes()] == [
         ("oasis-starlight", False),
@@ -57,6 +58,7 @@ def test_presets_have_requested_names_and_modes():
         ("github-dark-contrast", True),
         ("blackmetal", True),
         ("sequoia-light-monochrome", False),
+        ("eink-true-light", False),
     ]
 
 
@@ -103,6 +105,16 @@ def test_blackmetal_preset_matches_ghostty():
     assert bm.primary == "#486e6f"
     assert bm.secondary == "#a06666"
     assert bm.accent == "#dd9999"
+
+
+def test_eink_true_light_preset():
+    themes = {t.name: t for t in get_themes()}
+    assert "eink-true-light" in themes
+    eink = themes["eink-true-light"]
+    assert eink.dark is False
+    assert eink.background == "#ffffff"
+    assert eink.foreground == "#000000"
+    assert eink.accent == "#000000"
 
 
 def test_unknown_saved_theme_falls_back(tmp_path):

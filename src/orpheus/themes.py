@@ -16,6 +16,7 @@ PRESET_LABELS = (
     ("github-dark-contrast", "GitHub Dark Contrast"),
     ("blackmetal", "BlackMetal"),
     ("sequoia-light-monochrome", "Sequoia Light Monochrome"),
+    ("eink-true-light", "E-Ink True Light"),
 )
 
 
@@ -208,6 +209,20 @@ def get_themes():
             background="#e2e4ed",
             surface="#f3f4f8",
             panel="#d6d9e4",
+            dark=False,
+        ),
+        Theme(
+            name="eink-true-light",
+            primary="#111111",
+            secondary="#555555",
+            accent="#000000",
+            foreground="#000000",
+            background="#ffffff",
+            surface="#f2f2f2",
+            panel="#dcdcdc",
+            success="#111111",
+            warning="#444444",
+            error="#000000",
             dark=False,
         ),
     )

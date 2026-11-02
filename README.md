@@ -30,7 +30,7 @@ orpheus
 - **⏱️ Live Lyric Delay Tuning**: Adjust lyric timing on the fly using `[` and `]` (±0.25s). Timing offsets are persistently remembered per song in the local database.
 - **📋 Persistent Playback Queue**: Enqueue tracks (`e`), delete items (`Delete`), and enjoy seamless auto-advance when songs end. Queues survive app restarts.
 - **🎤 Optional Karaoke Separation (Demucs)**: Generate local instrumental/vocal stems with Demucs (`k`). Preserves playback position and pause state when toggling between original and instrumental tracks.
-- **🎨 Built-in Color Themes**: Switch instantly between 5 presets (`github-dark-contrast`, `blackmetal`, `catppuccin-latte`, `sequoia-light-monochrome`, `github-light-contrast`) via in-app dropdown or `--theme` CLI flag.
+- **🎨 Built-in Color Themes**: Switch instantly between presets (`github-dark-contrast`, `blackmetal`, `catppuccin-latte`, `sequoia-light-monochrome`, `eink-true-light`, `github-light-contrast`) via in-app dropdown or `--theme` CLI flag.
 - **🔄 Automatic Background Updates**: Checks for updates quietly in the background and notifies you when an update is ready.
 - **🌐 Web Audio & YouTube Streaming**: Native audio streaming directly inside the terminal player via `mpv` and `yt-dlp`. Paste any direct audio link, internet radio stream, or YouTube URL directly into the search bar to play immediately (`Enter`) or enqueue (`e`). Prioritizes Vietnamese and English tracks/subtitles (`--slang=vi,vie,en,eng`, `--alang=vi,vie,en,eng`).
 - **📻 Licensed Catalog & YouTube Search**:
