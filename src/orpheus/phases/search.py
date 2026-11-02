@@ -452,7 +452,10 @@ class SearchScreen(Screen):
         if track and hasattr(self.app, "load_playlist_and_play"):
             self.app.load_playlist_and_play(track, queue, history)
         elif track and hasattr(self.app, "play_resolved_track"):
-            self.app.play_resolved_track(track)
+            try:
+                self.app.play_resolved_track(track, notify_loading=True)
+            except TypeError:
+                self.app.play_resolved_track(track)
         else:
             table.focus()
 
@@ -976,7 +979,10 @@ class SearchScreen(Screen):
                     if hasattr(self.app, "load_playlist_and_play"):
                         self.app.load_playlist_and_play(first_track, queue, [], album=album_name)
                     elif hasattr(self.app, "play_resolved_track"):
-                        self.app.play_resolved_track(first_track)
+                        try:
+                            self.app.play_resolved_track(first_track, notify_loading=True)
+                        except TypeError:
+                            self.app.play_resolved_track(first_track)
                     self._active_pane = "online"
                     table.focus()
         except Exception:
@@ -1014,7 +1020,10 @@ class SearchScreen(Screen):
             if hasattr(self.app, "load_playlist_and_play"):
                 self.app.load_playlist_and_play(track, effective_queue, history, album=album)
             elif hasattr(self.app, "play_resolved_track"):
-                self.app.play_resolved_track(track)
+                try:
+                    self.app.play_resolved_track(track, notify_loading=True)
+                except TypeError:
+                    self.app.play_resolved_track(track)
 
     def _get_track_and_context_by_key(
         self, row_key: str

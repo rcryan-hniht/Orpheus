@@ -330,3 +330,82 @@ def test_synced_lyrics_scroll_mouse_and_arrows():
     # Test action methods don't crash when widget isn't mounted
     screen.action_scroll_lyrics_up()
     screen.action_scroll_lyrics_down()
+
+
+def test_now_playing_no_lyrics_matrix_rain_transition():
+    import asyncio
+
+    from textual.app import App
+
+    from orpheus.matrix import MatrixRain
+    from orpheus.models import Lyrics, Track
+    from orpheus.phases.now_playing import SyncedLyricsWidget
+
+    class TestApp(App):
+        def on_mount(self):
+            self.push_screen(NowPlayingScreen())
+
+    async def run():
+        app = TestApp()
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause()
+            screen = app.screen
+            lyrics_w = screen.query_one("#np-lyrics", SyncedLyricsWidget)
+            matrix_w = screen.query_one("#np-matrix", MatrixRain)
+
+            track = Track(
+                id="t1",
+                title="No Lyrics Song",
+                location="/fake/music/track1.mp3",
+                artist="Artist",
+                album="Album",
+                duration=120,
+            )
+
+            # 1. Update track with no lyrics
+            screen.update_track(track, lyrics=None)
+            await pilot.pause()
+
+            # Initially lyrics widget is shown with "No lyrics available", matrix rain is hidden
+            assert lyrics_w.display is True
+            assert "No lyrics available" in lyrics_w.render().plain
+            assert matrix_w.display is False
+            assert matrix_w.enabled is False
+            assert screen._no_lyrics_timer is not None
+
+            # 2. Trigger the timer callback
+            screen._show_matrix_rain()
+            await pilot.pause()
+
+            # Now lyrics widget is hidden, matrix rain is visible & enabled
+            assert lyrics_w.display is False
+            assert matrix_w.display is True
+            assert matrix_w.enabled is True
+            assert len(matrix_w.columns) > 0
+
+            # 3. Track with lyrics arrives
+            lyrics = Lyrics(synced="[00:01.00] Hello World")
+            screen.update_track(track, lyrics=lyrics)
+            await pilot.pause()
+
+            # Lyrics should reappear, matrix rain hidden & disabled
+            assert lyrics_w.display is True
+            assert matrix_w.display is False
+            assert matrix_w.enabled is False
+            assert "Hello World" in lyrics_w.render().plain
+
+            # 4. Screen resume when elapsed < 2s vs >= 2s
+            screen.update_track(track, lyrics=None)
+            # simulate 1s elapsed
+            screen._no_lyrics_time = time.monotonic() - 1.0
+            screen.on_screen_resume()
+            assert lyrics_w.display is True
+            assert matrix_w.display is False
+
+            # simulate 2.5s elapsed
+            screen._no_lyrics_time = time.monotonic() - 2.5
+            screen.on_screen_resume()
+            assert lyrics_w.display is False
+            assert matrix_w.display is True
+
+    asyncio.run(run())

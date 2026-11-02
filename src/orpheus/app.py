@@ -174,12 +174,13 @@ class OrpheusApp(App[None]):
         queue: list[Track] | None = None,
         history: list[Track] | None = None,
         album: str | None = None,
+        notify_loading: bool = True,
     ) -> None:
         """Load track list into queue and history, and start playing selected track."""
         self.current_album = album or ("playlist" if queue else None)
         self.queue = list(queue or [])
         self.history = list(history or [])
-        self.play_resolved_track(track)
+        self.play_resolved_track(track, notify_loading=notify_loading)
 
     def is_single_track_album(self) -> bool:
         alb = self.current_album or getattr(self, "last_album", None)
@@ -189,7 +190,7 @@ class OrpheusApp(App[None]):
                 return len(tracks) == 1
         return len(self.queue) == 0 and len(self.history) == 0
 
-    def play_resolved_track(self, track: Track) -> None:
+    def play_resolved_track(self, track: Track, notify_loading: bool = False) -> None:
         """Transition to Now Playing and resolve/stream audio without blocking UI."""
         self.last_played_track = track
         self.last_album = self.current_album
@@ -219,6 +220,16 @@ class OrpheusApp(App[None]):
         self.now_playing_screen.update_track(track, lyrics=None, is_loading=True)
         self.home_screen.set_playing_state(True)
         self.switch_phase("now_playing")
+        if notify_loading:
+            try:
+                track_name = f"'{track.title}'" if track.title else "track"
+                self.notify(
+                    f"Please wait a moment, loading audio and lyrics for {track_name}...",
+                    title="Loading Track",
+                    timeout=3.0,
+                )
+            except Exception:
+                pass
         if is_changing_track and self.player:
             self.run_worker(self._silence_player_for_new_track(), exclusive=False)
         self.run_worker(self._async_resolve_and_play(track, gen), exclusive=False)
@@ -273,16 +284,16 @@ class OrpheusApp(App[None]):
                 if self.is_single_track_album() and self.repeat_mode != "track":
                     await self.action_stop()
                 elif self.repeat_mode == "track":
-                    self.play_resolved_track(ended_t)
+                    self.play_resolved_track(ended_t, notify_loading=False)
                 elif self.current_album and self.queue:
                     # Switch to next song in the album
                     next_t = self.queue.pop(0)
-                    self.play_resolved_track(next_t)
+                    self.play_resolved_track(next_t, notify_loading=False)
                 elif self.current_album and self.repeat_mode == "all" and self.album_store:
                     album_tracks = self.album_store.get_album_tracks(self.current_album)
                     if album_tracks:
                         self.queue = list(album_tracks[1:])
-                        self.play_resolved_track(album_tracks[0])
+                        self.play_resolved_track(album_tracks[0], notify_loading=False)
                     else:
                         self.current_album = None
                         await self.action_stop()
@@ -308,9 +319,9 @@ class OrpheusApp(App[None]):
             if alb and self.album_store:
                 alb_tracks = self.album_store.get_album_tracks(alb)
                 q = alb_tracks[1:] if len(alb_tracks) > 1 else []
-                self.load_playlist_and_play(track, queue=q, album=alb)
+                self.load_playlist_and_play(track, queue=q, album=alb, notify_loading=True)
             else:
-                self.play_resolved_track(track)
+                self.play_resolved_track(track, notify_loading=True)
             return
 
         if self.player:

@@ -10,14 +10,59 @@ def test_get_title_lines():
     assert "█" in combined or "▀" in combined or "▄" in combined or "▓" in combined
 
 
-def test_matrix_rain_step():
-    matrix = MatrixRain(density=0.2)
-    matrix.setup_columns(width=40, height=20)
-    assert len(matrix.columns) == 40
-    # Step forward a frame
-    matrix.step()
-    # At least some columns should have characters
-    assert any(len(col.tail) > 0 for col in matrix.columns)
+def test_matrix_rain_theme_synchronization():
+    from unittest.mock import MagicMock
+
+    from orpheus.matrix import MatrixRain
+
+    matrix = MatrixRain(density=1.0)
+    matrix.setup_columns(width=10, height=10)
+
+    # Mock dark theme (e.g. Black Metal)
+    dummy_dark_theme = MagicMock()
+    dummy_dark_theme.dark = True
+    dummy_dark_theme.accent = "#dd9999"
+    dummy_dark_theme.background = "#000000"
+
+    dummy_app = MagicMock()
+    dummy_app.current_theme = dummy_dark_theme
+    matrix._app = dummy_app
+
+    # Ensure a column has a tail
+    col = matrix.columns[0]
+    col.active = True
+    col.head_y = 5.0
+    col.tail = [(5, "ｱ"), (4, "ｲ"), (3, "ｳ"), (1, "ｴ")]
+
+    rendered = matrix.render()
+    # Check that spans contain theme styles
+    styles = [str(span.style) for span in rendered.spans]
+    assert any("bold #ffffff" in s for s in styles)  # Head
+    assert any("#dd9999" in s for s in styles)  # Upper tail
+
+    # Mock light theme
+    dummy_light_theme = MagicMock()
+    dummy_light_theme.dark = False
+    dummy_light_theme.accent = "#0550ae"
+    dummy_light_theme.background = "#ffffff"
+    dummy_app.current_theme = dummy_light_theme
+
+    rendered_light = matrix.render()
+    light_styles = [str(span.style) for span in rendered_light.spans]
+    assert any("bold #000000" in s for s in light_styles)  # Head on light theme
+    assert any("#0550ae" in s for s in light_styles)  # Upper tail on light theme
+
+
+def test_matrix_rain_set_enabled():
+    matrix = MatrixRain(density=0.2, enabled=False)
+    assert matrix.enabled is False
+    assert matrix._timer is None
+
+    matrix.set_enabled(True)
+    assert matrix.enabled is True
+
+    matrix.set_enabled(False)
+    assert matrix.enabled is False
 
 
 def test_matrix_rain_uses_pure_japanese_katakana():

@@ -266,3 +266,43 @@ def test_app_single_track_album_no_seek_stop_and_space_replay(tmp_path):
         await app.close()
 
     asyncio.run(scenario())
+
+
+def test_app_loading_notification_on_track_play(tmp_path):
+    async def scenario():
+        app, player, db = make_app(tmp_path)
+        with patch.object(
+            app.audio_resolver,
+            "resolve_stream_url",
+            new=AsyncMock(return_value=("/music/song.mp3", "local")),
+        ):
+            async with app.run_test():
+                # Initial state: no notifications
+                assert len(app._notifications) == 0
+
+                # 1. When entering/playing a track via load_playlist_and_play
+                app.load_playlist_and_play(LOCAL)
+                await asyncio.sleep(0.1)
+
+                # Verify a loading notification was dispatched
+                assert len(app._notifications) >= 1
+                last_notify = list(app._notifications)[-1]
+                assert last_notify.title == "Loading Track"
+                assert "Please wait a moment" in last_notify.message
+                assert "audio and lyrics" in last_notify.message
+                assert LOCAL.title in last_notify.message
+                assert last_notify.timeout == 3.0
+
+                # 2. When advancing automatically via poll_player (notify_loading=False)
+                count_before = len(app._notifications)
+                player.state = PlaybackState(ended=True, position=180.0, duration=180.0)
+                app.queue = [SECOND]
+                app.current_album = "Playlist"
+                await app.poll_player()
+                await asyncio.sleep(0.1)
+
+                # No new notification should be dispatched for automatic advance
+                assert len(app._notifications) == count_before
+        await app.close()
+
+    asyncio.run(scenario())

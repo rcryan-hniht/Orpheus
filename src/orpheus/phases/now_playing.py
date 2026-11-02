@@ -22,6 +22,7 @@ from orpheus.art import (
 )
 from orpheus.cava import CavaReader
 from orpheus.lyrics import LyricLine, active_line, parse_lrc
+from orpheus.matrix import MatrixRain
 from orpheus.models import Lyrics, PlaybackState, Track
 
 _ART_CACHE: dict[str, str] = {}
@@ -590,6 +591,17 @@ class NowPlayingScreen(Screen):
         background: transparent;
     }
 
+    #np-lyrics {
+        width: 100%;
+        height: 100%;
+    }
+
+    #np-matrix {
+        width: 100%;
+        height: 100%;
+        display: none;
+    }
+
     #track-title {
         text-style: bold;
         color: $foreground;
@@ -642,6 +654,9 @@ class NowPlayingScreen(Screen):
         self._last_tap_time = 0.0
         self._last_tap_dir = ""
         self._playback_state = PlaybackState()
+        self._no_lyrics_timer = None
+        self._no_lyrics_time: float | None = None
+        self._has_lyrics: bool = False
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="now-playing-columns"):
@@ -666,6 +681,7 @@ class NowPlayingScreen(Screen):
 
             with Vertical(id="right-col"):
                 yield SyncedLyricsWidget(id="np-lyrics")
+                yield MatrixRain(id="np-matrix", density=0.22, enabled=False)
 
         yield NowPlayingFooter(id="np-footer")
 
@@ -681,12 +697,55 @@ class NowPlayingScreen(Screen):
             artist_album = f"{track.artist} — {track.album}" if track else ""
             self.query_one("#track-artist-album", Static).update(artist_album)
             lyrics_w = self.query_one("#np-lyrics", SyncedLyricsWidget)
-            if is_loading:
-                lyrics_w.set_loading(True)
-            else:
-                lyrics_w.set_lyrics(lyrics)
+            matrix_w = self.query_one("#np-matrix", MatrixRain)
             cava_w = self.query_one("#np-cava", CavaVisualizer)
             cava_w.reset()
+
+            if self._no_lyrics_timer is not None:
+                try:
+                    self._no_lyrics_timer.stop()
+                except Exception:
+                    pass
+                self._no_lyrics_timer = None
+
+            if is_loading:
+                self._has_lyrics = False
+                self._no_lyrics_time = None
+                lyrics_w.display = True
+                matrix_w.display = False
+                matrix_w.set_enabled(False)
+                lyrics_w.set_loading(True)
+            elif lyrics and (lyrics.synced or lyrics.plain):
+                self._has_lyrics = True
+                self._no_lyrics_time = None
+                lyrics_w.display = True
+                matrix_w.display = False
+                matrix_w.set_enabled(False)
+                lyrics_w.set_lyrics(lyrics)
+            else:
+                self._has_lyrics = False
+                self._no_lyrics_time = time.monotonic()
+                lyrics_w.display = True
+                matrix_w.display = False
+                matrix_w.set_enabled(False)
+                lyrics_w.set_lyrics(None)
+                self._no_lyrics_timer = self.set_timer(2.0, self._show_matrix_rain)
+        except Exception:
+            pass
+
+    def _show_matrix_rain(self) -> None:
+        if self._has_lyrics:
+            return
+        try:
+            lyrics_w = self.query_one("#np-lyrics", SyncedLyricsWidget)
+            matrix_w = self.query_one("#np-matrix", MatrixRain)
+            lyrics_w.display = False
+            matrix_w.display = True
+            matrix_w.set_enabled(True)
+            w = matrix_w.size.width if matrix_w.size.width > 0 else max(20, self.size.width - 46)
+            h = matrix_w.size.height if matrix_w.size.height > 0 else max(10, self.size.height - 4)
+            matrix_w.setup_columns(w, h)
+            matrix_w.refresh()
         except Exception:
             pass
 
@@ -731,6 +790,19 @@ class NowPlayingScreen(Screen):
                 art.set_timer(0.05, art._draw_kitty)
         except Exception:
             pass
+
+        if not self._has_lyrics and self._no_lyrics_time is not None:
+            elapsed = time.monotonic() - self._no_lyrics_time
+            if elapsed >= 2.0:
+                self._show_matrix_rain()
+            else:
+                remaining = max(0.1, 2.0 - elapsed)
+                if self._no_lyrics_timer is not None:
+                    try:
+                        self._no_lyrics_timer.stop()
+                    except Exception:
+                        pass
+                self._no_lyrics_timer = self.set_timer(remaining, self._show_matrix_rain)
 
     def action_scroll_lyrics_up(self) -> None:
         try:

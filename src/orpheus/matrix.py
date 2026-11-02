@@ -2,12 +2,34 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
+from typing import Any
 
 from rich.text import Text
 from textual.widget import Widget
 
 # Authentic Japanese Katakana characters and Matrix digits (no ugly math symbols)
 KATAKANA = "ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜｲｸﾁﾄﾉﾌﾍﾎﾕﾖﾙﾚﾛﾝ0123456789"
+
+
+def _hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
+    s = hex_str.lstrip("#")
+    if len(s) == 3:
+        s = "".join(c * 2 for c in s)
+    try:
+        return int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)
+    except Exception:
+        return (0, 255, 102)
+
+
+def _rgb_to_hex(r: int, g: int, b: int) -> str:
+    return f"#{max(0, min(255, r)):02x}{max(0, min(255, g)):02x}{max(0, min(255, b)):02x}"
+
+
+def _interpolate_color(c1: tuple[int, int, int], c2: tuple[int, int, int], t: float) -> str:
+    r = int(c1[0] + (c2[0] - c1[0]) * t)
+    g = int(c1[1] + (c2[1] - c1[1]) * t)
+    b = int(c1[2] + (c2[2] - c1[2]) * t)
+    return _rgb_to_hex(r, g, b)
 
 
 @dataclass
@@ -49,9 +71,36 @@ class MatrixRain(Widget):
         self._cur_height = 24
         self._timer = None
 
+    @property
+    def safe_app(self) -> Any:
+        try:
+            return self.app
+        except Exception:
+            return getattr(self, "_app", None)
+
+    def set_enabled(self, enabled: bool) -> None:
+        self.enabled = enabled
+        if enabled:
+            if self.is_mounted and not self._timer:
+                try:
+                    self._timer = self.set_interval(0.08, self._tick)
+                except Exception:
+                    pass
+            if not self.columns:
+                self.setup_columns(self.size.width or 80, self.size.height or 24)
+            if self.is_mounted:
+                self.refresh()
+        else:
+            if self._timer:
+                try:
+                    self._timer.stop()
+                except Exception:
+                    pass
+                self._timer = None
+
     def on_mount(self) -> None:
         self.setup_columns(self.size.width or 80, self.size.height or 24)
-        if self.enabled:
+        if self.enabled and not self._timer:
             self._timer = self.set_interval(0.08, self._tick)
 
     def on_resize(self) -> None:
@@ -122,12 +171,27 @@ class MatrixRain(Widget):
         grid: list[list[tuple[str, str]]] = [[(" ", "default") for _ in range(w)] for _ in range(h)]
 
         is_dark = True
+        accent = "#00ff66"
+        bg = "#000000"
         try:
-            if hasattr(self.app, "current_theme") and self.app.current_theme:
-                is_dark = getattr(self.app.current_theme, "dark", True)
+            app = self.safe_app
+            if app and hasattr(app, "current_theme") and app.current_theme:
+                theme = app.current_theme
+                is_dark = getattr(theme, "dark", True)
+                theme_accent = getattr(theme, "accent", None)
+                theme_primary = getattr(theme, "primary", None)
+                accent = str(theme_accent or theme_primary or "#00ff66")
+                bg = str(getattr(theme, "background", "#000000" if is_dark else "#ffffff"))
         except Exception:
             pass
-        head_style = "bold #ffffff" if is_dark else "bold #003311"
+
+        accent_rgb = _hex_to_rgb(accent)
+        bg_rgb = _hex_to_rgb(bg)
+
+        head_style = "bold #ffffff" if is_dark else "bold #000000"
+        upper_style = f"bold {accent}"
+        mid_style = _interpolate_color(accent_rgb, bg_rgb, 0.40)
+        tail_style = _interpolate_color(accent_rgb, bg_rgb, 0.75)
 
         for col in self.columns:
             if not col.active or col.x >= w:
@@ -136,17 +200,13 @@ class MatrixRain(Widget):
             for y, ch in col.tail:
                 if 0 <= y < h:
                     if y == int_head:
-                        # Head character: bright glowing white on dark, dark forest green on light
                         style = head_style
                     elif y >= int_head - 2:
-                        # Upper tail: electric neon green
-                        style = "bold #00ff66"
+                        style = upper_style
                     elif y >= int_head - 6:
-                        # Mid tail: authentic matrix green
-                        style = "#00cc55"
+                        style = mid_style
                     else:
-                        # Tail end: deep dark cyber green
-                        style = "#005522"
+                        style = tail_style
                     grid[y][col.x] = (ch, style)
 
         text = Text()
